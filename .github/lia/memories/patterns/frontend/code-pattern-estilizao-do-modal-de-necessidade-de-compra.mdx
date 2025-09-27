@@ -1,0 +1,82 @@
+---
+id: code-pattern-estilizao-do-modal-de-necessidade-de-compra
+type: code_pattern
+category: frontend
+confidence: 0.95
+created_at: '2025-09-25T04:22:59.741Z'
+updated_at: '2025-09-25T04:22:59.741Z'
+tags:
+  - purchase-requirement
+  - modal
+  - ui-components
+  - produtos
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+# Estilização do Modal de Necessidade de Compra
+
+## Mudanças Implementadas
+
+### 1. Estatísticas no Header
+
+- Adicionados 4 cards de estatísticas: Produtos, Unidades, Valor Estimado, Fornecedores
+- Layout em grid de 4 colunas com ícones e valores destacados
+- Background sutil com cores adequadas
+
+### 2. Layout de Lista Estruturada
+
+- Substituídos Cards por layout tabular com checkboxes
+- Cabeçalho sticky com colunas bem definidas
+- Grid de 12 colunas para distribuição proporcional
+- Hover e estados de seleção com cores azuis
+
+### 3. Colunas de Informações
+
+- **Produto**: SKU, nome e badge do fornecedor
+- **Estoque Atual**: Com indicação visual quando zerado
+- **Cobertura**: Em dias com destaque para valores críticos
+- **Em Ordem**: Quantidade em pedidos abertos
+- **Venda/dia**: Demanda diária calculada
+- **Necessidade**: Bruta e Líquida em duas colunas
+- **Comprar**: Input editável para quantidade
+- **Valor Estimado**: Calculado dinamicamente
+
+### 4. Funcionalidades
+
+- Seleção múltipla com checkbox "select all"
+- Estado para produtos selecionados
+- Cálculo dinâmico do valor total selecionado
+- Campo de busca para filtrar produtos
+- Botões de exportação (Excel/PDF)
+- Botão "Gerar Ordem de Compra"
+
+### 5. Estilos Visuais
+
+- Checkboxes com background azul quando selecionados
+- Botão verde "Add Produto" no header
+- Linhas com hover effect sutil
+- Produtos selecionados com background azul claro
+- Tipografia hierárquica com tamanhos apropriados
+
+## Componentes Utilizados
+
+- Dialog (modal base)
+- Button (ações)
+- Badge (tags de fornecedor)
+- Checkbox (seleção)
+- Input (busca e quantidade)
+- Ícones do lucide-react
+
+## Estado Gerenciado
+
+- selectedProducts: Set de SKUs selecionados
+- quantities: Record de SKU para quantidade
+- searchTerm: Filtro de busca
+
+## Cálculos Dinâmicos
+
+- Total de unidades baseado em quantities
+- Valor total selecionado baseado em selectedProducts
+- Estatísticas de fornecedores únicos

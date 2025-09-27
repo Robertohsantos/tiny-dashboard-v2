@@ -1,0 +1,55 @@
+---
+id: architectural-decision-development-vs-production-data-strategy
+type: architectural_decision
+category: security
+confidence: 1
+created_at: '2025-09-20T04:53:11.928Z'
+updated_at: '2025-09-20T04:53:11.928Z'
+tags:
+  - security
+  - data-separation
+  - mock-data
+  - production-safety
+  - environment-based
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+Implemented a robust strategy for separating mock data in development from real data in production.
+
+Security Concern:
+User explicitly asked: "os dados mockados mostrados no dashboard ficaram somente no ambiente de desenvolvimento. No ambiente de produção não podemos ter nenhum dado mockado ou hardcoded."
+
+Implementation Strategy:
+
+1. Created /src/mocks/ directory for ALL mock data
+2. Centralized data fetching logic in /src/modules/dashboard/data/data-fetchers.ts
+3. Used process.env.NODE_ENV to conditionally load data
+
+Data Fetching Pattern:
+
+```typescript
+export async function getData() {
+  if (process.env.NODE_ENV === 'development') {
+    return import('@/mocks/data.json')
+  }
+  // Production: fetch from database
+  return await prisma.model.findMany()
+}
+```
+
+Files Created:
+
+- /src/mocks/dashboard-data.json (table data)
+- /src/mocks/chart-data.json (chart points)
+- /src/mocks/metrics-data.json (card metrics)
+- /src/modules/dashboard/data/data-fetchers.ts (conditional logic)
+- /src/mocks/README.md (documentation)
+
+Security Guarantee:
+
+- Mock data NEVER loads in production
+- Clear separation of concerns
+- Type-safe with TypeScript interfaces
+- Ready for Prisma integration

@@ -1,0 +1,42 @@
+{
+  "salesWithoutShipping": {
+    "value": 2432175.5,
+    "currency": "R$",
+    "change": 28.45,
+    "trend": "up",
+    "description": "Vendas líquidas crescendo",
+    "subtext": "Sem custos de frete"
+  },
+  "costOfGoods": {
+    "value": 1246890.75,
+    "currency": "R$",
+    "change": 15.2,
+    "trend": "up",
+    "description": "Custo elevado no período",
+    "subtext": "CMV - Custo da Mercadoria Vendida"
+  },
+  "taxes": {
+    "value": 348756.9,
+    "currency": "R$",
+    "change": 22.1,
+    "trend": "up",
+    "description": "Impostos em alta",
+    "subtext": "Total de tributos recolhidos"
+  },
+  "marketplaceFees": {
+    "value": 165427.35,
+    "currency": "R$",
+    "change": -5.25,
+    "trend": "down",
+    "description": "Redução nas taxas",
+    "subtext": "Comissões de marketplaces"
+  },
+  "grossProfit": {
+    "value": 671100.5,
+    "currency": "R$",
+    "change": 42.15,
+    "trend": "up",
+    "description": "Lucro bruto em crescimento",
+    "subtext": "Após custos e taxas"
+  }
+}

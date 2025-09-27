@@ -1,0 +1,51 @@
+---
+id: bug-pattern-modal-scroll-header-overlap-fix
+type: bug_pattern
+confidence: 0.95
+created_at: '2025-09-25T04:47:47.699Z'
+updated_at: '2025-09-25T04:47:47.699Z'
+tags:
+  - modal
+  - scroll
+  - overlap-fix
+  - ui-bug
+  - purchase-list
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+# Modal Scroll Header Overlap Fix
+
+## Problem
+
+When scrolling in the purchase list modal, the header (title, filters, search bar) and statistics were overlapping with the product list content.
+
+## Root Cause
+
+The modal structure had the scroll applied to DialogMain but lacked proper flex-shrink-0 on fixed sections, causing them to compress or overlap during scroll.
+
+## Solution Applied
+
+1. Added `flex-shrink-0` to header section to prevent compression
+2. Added `flex-shrink-0` to statistics section to keep fixed size
+3. Added `flex-shrink-0` to footer section for consistent behavior
+4. Updated header row of the table with:
+   - `z-20` for higher z-index priority
+   - `bg-white` for solid background
+   - `border-b` for visual separation
+
+## Code Changes
+
+- Line 195: Added `flex-shrink-0` to header div
+- Line 270: Added `flex-shrink-0` to statistics div
+- Line 319: Updated table header with `z-20 bg-white border-b`
+- Line 360: Added `flex-shrink-0` to footer
+
+## Benefits
+
+- Header and statistics remain visible and fixed at top
+- Only the product list scrolls
+- No overlapping of elements
+- Improved UX with important information always accessible
+- Maintains consistent visual structure

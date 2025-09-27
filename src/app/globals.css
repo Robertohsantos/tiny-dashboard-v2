@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 220 100% 60%; /* azul vibrante #3366FF */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 26% 97%; /* cinza claro #F5F7FA */
+    --secondary-foreground: 215 34% 17%;
+    --muted: 210 15% 95%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 100% 66%; /* vermelho #FF5252 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 92.8%;
+    --input: 0 0% 89.8%;
+    --ring: 220 100% 60%;
+    --ring-offset: 0 0% 100%;
+    --radius: 0.75rem;
+    --chart-1: 220 100% 60%; /* azul primary */
+    --chart-2: 25 95% 53%; /* laranja #F97316 */
+    --chart-3: 122 39% 49%; /* verde success */
+    --chart-4: 0 100% 66%; /* vermelho danger */
+    --chart-5: 45 100% 51%; /* amarelo warning */
+    --sidebar-background: 220 100% 60%; /* azul primary */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 220 100% 60%;
+    --sidebar-accent: 220 100% 65%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 100% 55%;
+    --sidebar-ring: 220 100% 70%;
+  }
+
+  .dark {
+    --background: 215 34% 10%; /* dark azul escuro */
+    --foreground: 0 0% 93%;
+    --card: 215 30% 15%;
+    --card-foreground: 0 0% 93%;
+    --popover: 215 30% 15%;
+    --popover-foreground: 0 0% 93%;
+    --primary: 220 100% 60%; /* mantém azul vibrante */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 20% 20%;
+    --secondary-foreground: 0 0% 93%;
+    --muted: 215 20% 25%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 215 25% 22%;
+    --accent-foreground: 0 0% 93%;
+    --destructive: 0 100% 66%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 20% 25%;
+    --input: 215 20% 25%;
+    --ring: 220 100% 60%;
+    --ring-offset: 215 34% 10%;
+    --chart-1: 220 100% 60%;
+    --chart-2: 25 95% 60%;
+    --chart-3: 122 39% 49%;
+    --chart-4: 0 100% 66%;
+    --chart-5: 45 100% 51%;
+    --sidebar-background: 220 100% 50%; /* azul mais escuro no dark */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 220 100% 50%;
+    --sidebar-accent: 220 100% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 100% 45%;
+    --sidebar-ring: 220 100% 65%;
+  }
+}
+
+@layer base {
+  a {
+    @apply inline-flex items-center gap-2;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  /* Minimal focus styles */
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px hsl(var(--ring) / 0.25),
+      0 0 0 4px hsl(var(--ring-offset) / 0.8);
+    border-radius: calc(var(--radius) + 2px);
+  }
+  .focus-ring-minimal:focus-visible,
+  [data-focus] .focus-ring-minimal:focus-visible {
+    box-shadow:
+      0 0 0 2px hsl(var(--ring) / 0.2),
+      0 0 0 3px hsl(var(--ring-offset) / 0.7);
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased min-h-screen;
+  }
+  html {
+    @apply antialiased scroll-smooth;
+  }
+  ::selection {
+    @apply bg-primary/30;
+  }
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
+  }
+
+  @font-face {
+    font-family: 'geist';
+    font-style: normal;
+    font-weight: 100 900;
+    src: url(/fonts/geist.woff2) format('woff2');
+  }
+
+  @font-face {
+    font-family: 'geist-mono';
+    font-style: normal;
+    font-weight: 100 900;
+    src: url(/fonts/geist-mono.woff2) format('woff2');
+  }
+}
+
+.merge-form-section {
+  @apply flex flex-col space-y-0 border rounded-md bg-card divide-y;
+}
+
+.merge-form-section > div {
+  @apply rounded-none border-0 bg-transparent px-6;
+}
+
+.merge-form-section > header {
+  @apply px-6;
+}
+
+.merge-form-section > footer {
+  @apply px-6;
+}
+
+nextjs-portal {
+  display: contents;
+}
+
+.highlight {
+  background: url(https://s2.svgbox.net/pen-brushes.svg?ic=brush-5&color=ffff43);
+  margin: -2px -4px;
+  padding: 2px 4px;
+}
+
+.dark .highlight {
+  background: url(https://s2.svgbox.net/pen-brushes.svg?ic=brush-5&color=333);
+  margin: -2px -4px;
+  padding: 2px 4px;
+}
+
+.hero-section {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    hsl(var(--primary) / 0.05) 0%,
+    transparent 70%
+  );
+  z-index: -1;
+  pointer-events: none;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

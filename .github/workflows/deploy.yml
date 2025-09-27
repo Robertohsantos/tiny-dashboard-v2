@@ -1,0 +1,429 @@
+name: Production Deployment with Validation Rollout
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rollout_percentage:
+        description: 'Validation rollout percentage (0-100)'
+        required: false
+        default: '10'
+        type: choice
+        options:
+          - '0'
+          - '10'
+          - '25'
+          - '50'
+          - '75'
+          - '100'
+      force_rollback:
+        description: 'Force rollback validation hooks'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # Job 1: Pre-deployment Validation Tests
+  pre-deployment-tests:
+    name: Pre-deployment Validation Tests
+    runs-on: ubuntu-latest
+    outputs:
+      validation_safe: ${{ steps.safety_check.outputs.safe }}
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Run validation tests
+        id: validation_tests
+        run: |
+          echo "Running validation hook tests..."
+          npm run test -- --testPathPattern="validated" --coverage
+        env:
+          NEXT_PUBLIC_VALIDATION_ENABLED: true
+          CI: true
+
+      - name: Check validation safety
+        id: safety_check
+        run: |
+          # Check test results and coverage
+          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          echo "Test coverage: ${COVERAGE}%"
+          
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "⚠️ Coverage below 80%, marking as unsafe"
+            echo "safe=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Coverage acceptable"
+            echo "safe=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-test-results
+          path: |
+            coverage/
+            test-results/
+          retention-days: 30
+
+  # Job 2: Build and Deploy
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: pre-deployment-tests
+    if: needs.pre-deployment-tests.outputs.validation_safe == 'true' || github.event.inputs.force_rollback == 'true'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Configure validation rollout
+        run: |
+          if [[ "${{ github.event.inputs.force_rollback }}" == "true" ]]; then
+            echo "🔄 Rolling back validation hooks..."
+            PERCENTAGE=0
+          else
+            PERCENTAGE="${{ github.event.inputs.rollout_percentage || '10' }}"
+            echo "📊 Setting validation rollout to ${PERCENTAGE}%"
+          fi
+          
+          # Create production config
+          cat > validation.production.json << EOFCONFIG
+          {
+            "environment": "production",
+            "version": "$(git rev-parse --short HEAD)",
+            "deployedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "validation": {
+              "enabled": $([ "$PERCENTAGE" -gt 0 ] && echo "true" || echo "false"),
+              "percentage": $PERCENTAGE,
+              "features": {
+                "dashboard": true,
+                "produtos": true,
+                "reports": $([ "$PERCENTAGE" -ge 50 ] && echo "true" || echo "false"),
+                "settings": $([ "$PERCENTAGE" -ge 75 ] && echo "true" || echo "false")
+              }
+            },
+            "monitoring": {
+              "enabled": true,
+              "errorThreshold": 5,
+              "performanceThreshold": 1000,
+              "autoRollback": true,
+              "telemetry": {
+                "endpoint": "${{ secrets.TELEMETRY_ENDPOINT }}",
+                "apiKey": "${{ secrets.TELEMETRY_API_KEY }}"
+              }
+            },
+            "rollback": {
+              "automatic": true,
+              "errorRateThreshold": 5,
+              "responseTimeThreshold": 1500,
+              "checkInterval": 60000
+            }
+          }
+          EOFCONFIG
+          
+          echo "NEXT_PUBLIC_VALIDATION_ENABLED=$([ "$PERCENTAGE" -gt 0 ] && echo "true" || echo "false")" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_VALIDATION_PERCENTAGE=$PERCENTAGE" >> $GITHUB_ENV
+
+      - name: Build application
+        run: |
+          npm run build
+        env:
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.PRODUCTION_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_VALIDATION_ENABLED: ${{ env.NEXT_PUBLIC_VALIDATION_ENABLED }}
+          NEXT_PUBLIC_VALIDATION_PERCENTAGE: ${{ env.NEXT_PUBLIC_VALIDATION_PERCENTAGE }}
+          VALIDATION_TELEMETRY_ENDPOINT: ${{ secrets.TELEMETRY_ENDPOINT }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          npm install -g vercel
+          
+          # Deploy with validation configuration
+          vercel deploy \
+            --prod \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --env NEXT_PUBLIC_VALIDATION_ENABLED=${{ env.NEXT_PUBLIC_VALIDATION_ENABLED }} \
+            --env NEXT_PUBLIC_VALIDATION_PERCENTAGE=${{ env.NEXT_PUBLIC_VALIDATION_PERCENTAGE }} \
+            --env DATABASE_URL=${{ secrets.DATABASE_URL }} \
+            --env VALIDATION_TELEMETRY_ENDPOINT=${{ secrets.TELEMETRY_ENDPOINT }} \
+            > deployment-url.txt
+          
+          DEPLOYMENT_URL=$(cat deployment-url.txt)
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to: $DEPLOYMENT_URL"
+
+      - name: Verify deployment health
+        run: |
+          DEPLOYMENT_URL="${{ steps.deploy.outputs.deployment_url }}"
+          echo "Checking deployment health at $DEPLOYMENT_URL"
+          
+          # Wait for deployment to be ready
+          sleep 30
+          
+          # Health check
+          for i in {1..5}; do
+            if curl -f "$DEPLOYMENT_URL/api/health" > /dev/null 2>&1; then
+              echo "✅ Deployment is healthy"
+              break
+            else
+              echo "Attempt $i: Waiting for deployment..."
+              sleep 10
+            fi
+          done
+          
+          # Validation status check
+          curl -s "$DEPLOYMENT_URL/api/monitoring/validation/status" | jq '.'
+
+      - name: Store deployment info
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-info
+          path: |
+            validation.production.json
+            deployment-url.txt
+          retention-days: 90
+
+  # Job 3: Post-deployment Monitoring
+  post-deployment-monitoring:
+    name: Post-deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup monitoring
+        run: |
+          # Create monitoring script
+          cat > monitor.js << 'EOFMON'
+          const https = require('https');
+          
+          const DEPLOYMENT_URL = process.env.DEPLOYMENT_URL || 'https://production.example.com';
+          const MONITORING_DURATION = 300000; // 5 minutes
+          const CHECK_INTERVAL = 30000; // 30 seconds
+          
+          let errorCount = 0;
+          let successCount = 0;
+          let totalResponseTime = 0;
+          
+          function checkHealth() {
+            return new Promise((resolve) => {
+              const start = Date.now();
+              
+              https.get(`${DEPLOYMENT_URL}/api/monitoring/validation/metrics`, (res) => {
+                const responseTime = Date.now() - start;
+                let data = '';
+                
+                res.on('data', (chunk) => { data += chunk; });
+                res.on('end', () => {
+                  try {
+                    const metrics = JSON.parse(data);
+                    
+                    if (metrics.errorRate > 5) {
+                      console.error(`⚠️ High error rate: ${metrics.errorRate}%`);
+                      errorCount++;
+                    } else {
+                      successCount++;
+                    }
+                    
+                    totalResponseTime += responseTime;
+                    
+                    console.log(`✅ Check ${successCount + errorCount}: Error rate ${metrics.errorRate}%, Response time ${responseTime}ms`);
+                    
+                    resolve(metrics);
+                  } catch (error) {
+                    console.error('Failed to parse metrics:', error);
+                    errorCount++;
+                    resolve(null);
+                  }
+                });
+              }).on('error', (error) => {
+                console.error('Health check failed:', error);
+                errorCount++;
+                resolve(null);
+              });
+            });
+          }
+          
+          async function monitor() {
+            console.log('📊 Starting post-deployment monitoring...');
+            const startTime = Date.now();
+            
+            const interval = setInterval(async () => {
+              await checkHealth();
+              
+              if (Date.now() - startTime >= MONITORING_DURATION) {
+                clearInterval(interval);
+                
+                const totalChecks = successCount + errorCount;
+                const avgResponseTime = totalResponseTime / totalChecks;
+                const errorRate = (errorCount / totalChecks) * 100;
+                
+                console.log('\n📈 Monitoring Summary:');
+                console.log(`  Total checks: ${totalChecks}`);
+                console.log(`  Success: ${successCount}`);
+                console.log(`  Errors: ${errorCount}`);
+                console.log(`  Error rate: ${errorRate.toFixed(2)}%`);
+                console.log(`  Avg response time: ${avgResponseTime.toFixed(0)}ms`);
+                
+                if (errorRate > 10) {
+                  console.error('\n❌ Deployment unhealthy - rollback recommended');
+                  process.exit(1);
+                } else {
+                  console.log('\n✅ Deployment healthy');
+                  process.exit(0);
+                }
+              }
+            }, CHECK_INTERVAL);
+          }
+          
+          monitor();
+          EOFMON
+          
+          # Run monitoring
+          DEPLOYMENT_URL=$(cat deployment-url.txt 2>/dev/null || echo "${{ secrets.PRODUCTION_URL }}")
+          node monitor.js
+
+      - name: Check auto-rollback status
+        run: |
+          echo "Checking for auto-rollback triggers..."
+          
+          # Query rollback status
+          DEPLOYMENT_URL=$(cat deployment-url.txt 2>/dev/null || echo "${{ secrets.PRODUCTION_URL }}")
+          
+          ROLLBACK_STATUS=$(curl -s "$DEPLOYMENT_URL/api/monitoring/rollback/status" | jq -r '.triggered')
+          
+          if [[ "$ROLLBACK_STATUS" == "true" ]]; then
+            echo "⚠️ Auto-rollback was triggered"
+            exit 1
+          else
+            echo "✅ No auto-rollback triggered"
+          fi
+
+  # Job 4: Rollback if needed
+  rollback-on-failure:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-production, post-deployment-monitoring]
+    if: failure()
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Trigger rollback
+        run: |
+          echo "🔄 Triggering rollback..."
+          
+          # Redeploy with validation disabled
+          vercel deploy \
+            --prod \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --env NEXT_PUBLIC_VALIDATION_ENABLED=false \
+            --env NEXT_PUBLIC_VALIDATION_PERCENTAGE=0 \
+            --env DATABASE_URL=${{ secrets.DATABASE_URL }}
+          
+          echo "✅ Rollback completed - validation hooks disabled"
+
+      - name: Send rollback notification
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Create issue for rollback
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🔄 Validation Hooks Rollback - Production',
+              body: `## Automatic Rollback Triggered
+              
+              **Deployment:** ${context.sha}
+              **Time:** ${new Date().toISOString()}
+              **Reason:** Post-deployment monitoring detected issues
+              
+              ### Actions Required
+              - [ ] Investigate validation errors
+              - [ ] Fix identified issues
+              - [ ] Re-run validation tests
+              - [ ] Plan re-deployment
+              
+              ### Logs
+              - [Deployment Workflow](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+              - [Monitoring Dashboard](/admin/validation-monitor)
+              `,
+              labels: ['rollback', 'validation', 'production', 'high-priority']
+            });
+            
+            console.log(`Created rollback issue: #${issue.data.number}`);
+
+  # Job 5: Success notification
+  notify-success:
+    name: Notify Successful Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-production, post-deployment-monitoring]
+    if: success()
+    
+    steps:
+      - name: Send success notification
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const percentage = '${{ github.event.inputs.rollout_percentage }}' || '10';
+            
+            const comment = `### ✅ Validation Hooks Deployed Successfully
+            
+            **Rollout Percentage:** ${percentage}%
+            **Deployment:** ${{ github.sha }}
+            **Time:** ${new Date().toISOString()}
+            
+            ### Monitoring
+            - [Production Dashboard](${{ secrets.PRODUCTION_URL }}/admin/validation-monitor)
+            - [Metrics Dashboard](${{ secrets.MONITORING_URL }})
+            
+            ### Next Steps
+            ${percentage < 100 ? `- Monitor error rates and performance
+            - If stable, increase rollout percentage
+            - Current: ${percentage}% → Next: ${Math.min(parseInt(percentage) * 2, 100)}%` : 
+            '- Full rollout complete! 🎉\n- Continue monitoring for stability'}
+            `;
+            
+            // Add comment to PR if exists
+            if (context.payload.pull_request) {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+            
+            console.log('✅ Deployment successful with validation at ' + percentage + '%');

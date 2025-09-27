@@ -1,0 +1,54 @@
+---
+id: bug-pattern-dropdownmenu-click-handlers-fix
+type: bug_pattern
+confidence: 0.9
+created_at: '2025-09-25T05:33:49.795Z'
+updated_at: '2025-09-25T05:33:49.795Z'
+tags:
+  - dropdown
+  - event-handling
+  - radix-ui
+  - bug-fix
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+# DropdownMenu Click Handlers Fix
+
+## Problem
+
+The Ferramentas and Colunas dropdown buttons were not working properly. Additionally, there was an SSE error showing in the dev server.
+
+## Root Cause
+
+1. The DropdownMenuItem components were using `onClick` instead of `onSelect`
+2. Missing event.preventDefault() in handlers
+3. The SSE error "ERR_INVALID_STATE" is unrelated - it's a Next.js hot reload issue
+
+## Solution Applied
+
+1. Changed from `onClick` to `onSelect` in all DropdownMenuItem components
+2. Added `e.preventDefault()` to prevent default behavior
+3. Added `sideOffset={5}` to DropdownMenuContent for better positioning
+
+## Code Changes
+
+```tsx
+// Before
+<DropdownMenuItem onClick={handleFunction}>
+
+// After
+<DropdownMenuItem onSelect={(e) => {
+  e.preventDefault()
+  handleFunction()
+}}>
+```
+
+## Additional Notes
+
+The SSE (Server-Sent Events) error is a common Next.js development server issue related to the hot reload mechanism. It doesn't affect the functionality of the application and can be safely ignored in development.
+
+## Result
+
+Both dropdown menus (Ferramentas and Colunas) now work correctly with proper event handling.

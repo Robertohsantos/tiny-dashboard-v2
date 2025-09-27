@@ -1,0 +1,232 @@
+---
+title: 'Managing API Keys'
+description: 'Learn how to create, manage, and secure API keys for integrating your SaaS Boilerplate with external services and applications.'
+author: 'Lia'
+category: 'api-keys'
+category_name: 'API Keys'
+category_description: 'Manage API keys for external integrations and automation'
+date: '2025-08-28'
+---
+
+## Managing Your API Keys
+
+The API Keys page is your central hub for managing authentication keys that allow external services and applications to interact with your SaaS Boilerplate account. You can access this page by navigating to `Settings > Organization > API Keys` from the main dashboard sidebar.
+
+![The API Keys page showing API key management tools and existing keys.](/images/help-center/api-keys/01-api-keys-page.png)
+
+This powerful API key management system provides secure access control for integrations, allowing you to connect your SaaS Boilerplate with external tools while maintaining security and monitoring usage.
+
+## Page Overview
+
+The API Keys page is organized into several key sections, each providing important functionality for managing your API access:
+
+### **🔑 Create API Key**
+
+A prominent button at the top of the page allows you to generate new API keys for different use cases.
+
+**Create API Key Button:**
+
+- **Location**: Top-right corner of the page
+- **Purpose**: Generate new API keys for integrations
+- **Access**: Available to organization administrators
+
+### **📋 API Keys List**
+
+A comprehensive list of all your existing API keys with detailed information and management options.
+
+**Current API Key:**
+
+- **Name**: Sample
+- **Key Preview**: ••••c6f9 (masked for security)
+- **Expiration**: Never expires
+- **Status**: Active
+
+### **🔍 Search Functionality**
+
+A search bar to quickly find specific API keys in your collection.
+
+**Search Features:**
+
+- **Search Bar**: Located above the API keys list
+- **Placeholder**: "Procurar..." (Search...)
+- **Functionality**: Filter keys by name or other attributes
+
+## API Key Management Features
+
+### **Key Information Display**
+
+Each API key shows essential information for identification and management:
+
+**Displayed Information:**
+
+- **Key Name**: Human-readable identifier for the key
+- **Key Preview**: Masked version showing only the last few characters
+- **Expiration Status**: Whether the key expires and when
+- **Creation Date**: When the key was generated
+- **Last Used**: Timestamp of last API call (if available)
+
+### **Key Actions**
+
+Each API key provides several management actions:
+
+**Available Actions:**
+
+1. **Show API Key**: Reveal the full key for copying
+2. **Copy API Key**: Copy the key to clipboard
+3. **Delete Key**: Remove the key permanently
+4. **Edit Key**: Modify key properties (if available)
+
+### **Security Features**
+
+Built-in security measures to protect your API keys:
+
+**Security Measures:**
+
+- **Key Masking**: Keys are displayed partially to prevent shoulder surfing
+- **Secure Display**: Full keys are only shown when explicitly requested
+- **Access Control**: Only authorized users can manage API keys
+- **Audit Trail**: Track key usage and modifications
+
+## Creating New API Keys
+
+### **Key Creation Process**
+
+Follow these steps to create a new API key:
+
+1. **Click Create API Key**: Use the button in the top-right corner
+2. **Configure Key Settings**: Set name, permissions, and expiration
+3. **Generate Key**: System creates a secure, unique key
+4. **Copy and Store**: Securely copy the key for immediate use
+5. **Save Configuration**: Store key details for future reference
+
+### **Key Configuration Options**
+
+When creating a new API key, you can configure:
+
+**Basic Settings:**
+
+- **Key Name**: Descriptive name for identification
+- **Description**: Optional details about the key's purpose
+- **Permissions**: Specific access levels and scopes
+- **Expiration**: Optional expiration date for security
+
+**Advanced Settings:**
+
+- **Rate Limiting**: API call frequency restrictions
+- **IP Restrictions**: Limit access to specific IP addresses
+- **Event Types**: Specific events the key can access
+- **Webhook Integration**: Connect to webhook endpoints
+
+## API Key Best Practices
+
+### **Security Guidelines**
+
+Follow these security best practices for API key management:
+
+**Key Security:**
+
+- **Unique Names**: Use descriptive, unique names for each key
+- **Limited Permissions**: Grant only necessary access levels
+- **Regular Rotation**: Periodically rotate keys for security
+- **Secure Storage**: Store keys securely, never in code repositories
+- **Monitor Usage**: Regularly check key usage patterns
+
+**Access Control:**
+
+- **Principle of Least Privilege**: Grant minimal required access
+- **Key Separation**: Use different keys for different services
+- **Environment Isolation**: Separate keys for development/production
+- **User Accountability**: Track who created and uses each key
+
+### **Usage Guidelines**
+
+Best practices for using API keys effectively:
+
+**Integration Usage:**
+
+- **Service-Specific Keys**: Create dedicated keys for each integration
+- **Documentation**: Document key purpose and usage
+- **Testing**: Test integrations with dedicated test keys
+- **Monitoring**: Track API usage and performance
+- **Error Handling**: Implement proper error handling for API calls
+
+## API Key Use Cases
+
+### **Common Integration Scenarios**
+
+API keys enable various integration possibilities:
+
+**External Services:**
+
+- **CRM Systems**: Connect customer data management tools
+- **Marketing Platforms**: Integrate email marketing and automation
+- **Analytics Tools**: Send data to business intelligence platforms
+- **Custom Applications**: Build custom integrations and tools
+- **Webhook Endpoints**: Receive real-time event notifications
+
+**Automation Workflows:**
+
+- **Data Synchronization**: Keep data consistent across platforms
+- **Event Triggers**: Automate actions based on SaaS events
+- **Reporting**: Generate automated reports and insights
+- **User Management**: Automate user provisioning and management
+- **Content Management**: Automate content updates and publishing
+
+## Troubleshooting
+
+### **Common Issues**
+
+Solutions for typical API key problems:
+
+**Key Problems:**
+
+- **Invalid Key**: Verify key is correct and not expired
+- **Permission Errors**: Check key permissions and scopes
+- **Rate Limiting**: Monitor API usage and limits
+- **Authentication Failures**: Verify key format and validity
+- **Integration Errors**: Check service configuration and endpoints
+
+**Getting Help:**
+
+- **Documentation**: Review API documentation and examples
+- **Support**: Contact support for complex integration issues
+- **Community**: Check community forums for solutions
+- **Testing**: Use API testing tools to verify functionality
+
+## Monitoring and Analytics
+
+### **Usage Tracking**
+
+Monitor your API key usage and performance:
+
+**Available Metrics:**
+
+- **Call Volume**: Number of API calls per key
+- **Response Times**: Performance metrics for API calls
+- **Error Rates**: Frequency and types of API errors
+- **User Activity**: Which services are using each key
+- **Geographic Usage**: Location of API calls (if available)
+
+### **Performance Optimization**
+
+Use analytics to improve API performance:
+
+**Optimization Strategies:**
+
+- **Caching**: Implement appropriate caching strategies
+- **Rate Limiting**: Optimize call frequency and patterns
+- **Error Handling**: Improve error handling and retry logic
+- **Load Balancing**: Distribute API calls across multiple keys
+- **Monitoring**: Set up alerts for performance issues
+
+## Future Enhancements
+
+The API key management system continues to evolve with new features:
+
+- **Advanced Permissions**: Granular access control and scoping
+- **Key Analytics**: Detailed usage analytics and insights
+- **Automated Rotation**: Scheduled key rotation and management
+- **Integration Templates**: Pre-configured integration setups
+- **Enhanced Security**: Additional security features and monitoring
+
+The API Keys page provides comprehensive control over your external integrations, ensuring secure and efficient access to your SaaS Boilerplate functionality. Proper API key management enables powerful integrations while maintaining security and monitoring capabilities for your business needs.

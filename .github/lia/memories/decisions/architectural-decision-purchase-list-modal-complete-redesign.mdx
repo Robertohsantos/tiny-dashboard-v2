@@ -1,0 +1,79 @@
+---
+id: architectural-decision-purchase-list-modal-complete-redesign
+type: architectural_decision
+confidence: 0.95
+created_at: '2025-09-25T05:29:52.318Z'
+updated_at: '2025-09-25T05:29:52.318Z'
+tags:
+  - purchase-list-modal
+  - ui-redesign
+  - complete-refactor
+  - filters
+  - statistics
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+# Purchase List Modal Complete Redesign
+
+## Summary
+
+Successfully redesigned the purchase list modal to match the reference images (dash10.jpeg and dash13.png), implementing a more intuitive and visually appealing layout.
+
+## Major Changes Implemented
+
+### 1. Filter System
+
+- Added dropdown filters for Brands, Suppliers, Categories, and Warehouses
+- Implemented "Critical Stock" button for quick filtering
+- Added "Clear Filters" button for resetting all selections
+- Filters properly cascade and update the product list in real-time
+
+### 2. Statistics Container
+
+- Converted from individual cards to a single unified container
+- Statistics now display horizontally without borders
+- Shows: Products count, Units to purchase, Estimated value, and Suppliers count
+- Cleaner presentation with better visual hierarchy
+
+### 3. Product Row Complete Redesign
+
+- **Line 1**: Checkbox + Product name | SKU | Supplier badge
+- **Line 2**: Stock metrics (Current stock, Coverage days, Orders in transit, Daily sales)
+- **Line 3**: Visual spacer for better readability
+- **Line 4**: Purchase requirements (Gross need, Net need, Suggestion, Purchase input, Estimated value)
+- Background color: Light indigo/lilac (bg-indigo-50/20)
+- Each row is now ~120px tall for better readability
+- Hover and selection states with smooth transitions
+
+### 4. Visual Improvements
+
+- Color-coded coverage indicators (red < 7 days, orange < 14 days)
+- Better spacing and padding throughout
+- Indigo/lilac color scheme matching reference
+- Improved typography with proper font weights
+
+### 5. Footer Reorganization
+
+- "Unselect All" button on the left
+- Selected count display next to unselect button
+- "Back", "Cancel", and "Generate Purchase Order" buttons on the right
+- Proper button states (disabled when appropriate)
+
+## Technical Implementation
+
+- Used Radix UI Select components for dropdowns
+- Proper React state management for filters
+- Memoized calculations for performance
+- Type-safe implementation with TypeScript
+- Responsive design considerations
+
+## Result
+
+The modal now perfectly matches the reference design with improved UX:
+
+- Better visual hierarchy
+- Clearer information presentation
+- More intuitive interaction patterns
+- Professional appearance consistent with modern UI standards

@@ -1,0 +1,19 @@
+{
+  "name": "@saas-boilerplate/eslint-plugin",
+  "version": "1.0.0",
+  "description": "ESLint plugin for Igniter.js bundle contamination prevention",
+  "main": "index.js",
+  "keywords": [
+    "eslint",
+    "eslint-plugin",
+    "igniter-js",
+    "bundle-contamination",
+    "saas-boilerplate"
+  ],
+  "author": "Lia",
+  "license": "MIT",
+  "type": "module",
+  "peerDependencies": {
+    "eslint": ">=7.0.0"
+  }
+}

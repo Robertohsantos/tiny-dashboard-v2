@@ -1,0 +1,35 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "formatter": {
+    "code_actions": {
+      "source.fixAll.eslint": true
+    }
+  },
+  "context_servers": {
+    "browser": {
+      "source": "custom",
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "env": {}
+    },
+    "vibe_kanban": {
+      "source": "custom",
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "vibe-kanban", "--mcp"]
+    },
+    "igniter": {
+      "source": "custom",
+      "command": "bunx",
+      "args": ["@igniter-js/mcp-server@latest"]
+    }
+  }
+}

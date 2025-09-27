@@ -1,0 +1,34 @@
+{
+  "totalSales": {
+    "value": 2758825.37,
+    "currency": "R$",
+    "change": 37.25,
+    "trend": "up",
+    "description": "Crescendo em ritmo acelerado",
+    "subtext": "Comparado ao mês anterior"
+  },
+  "itemsSold": {
+    "value": 12454,
+    "unit": "itens",
+    "change": 47.12,
+    "trend": "up",
+    "description": "Aumento nas vendas",
+    "subtext": "Produtos movimentados"
+  },
+  "orders": {
+    "value": 3412,
+    "unit": "pedidos",
+    "change": -8.5,
+    "trend": "down",
+    "description": "Redução no período",
+    "subtext": "Total de pedidos realizados"
+  },
+  "averageTicket": {
+    "value": 677.5,
+    "currency": "R$",
+    "change": 12.8,
+    "trend": "up",
+    "description": "Ticket médio em alta",
+    "subtext": "Valor médio por pedido"
+  }
+}

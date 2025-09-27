@@ -1,0 +1,85 @@
+---
+id: bug-pattern-correo-do-problema-2522-no-contador-de-filtros-de-marcas
+type: bug_pattern
+category: bug-fix
+confidence: 0.95
+created_at: '2025-09-24T07:33:40.900Z'
+updated_at: '2025-09-24T07:33:40.900Z'
+tags:
+  - filtros
+  - produtos
+  - bug-fix
+  - multi-select
+  - validation
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+# Problema: Discrepância no Contador de Marcas (25/22)
+
+## Sintoma
+
+O filtro de marcas mostrava "25/22" onde:
+
+- 25 = marcas selecionadas (valor incorreto)
+- 22 = marcas disponíveis (valor correto)
+
+Quando selecionava todos (22/22), o total em estoque diminuía de R$ 1.876.882,91 para R$ 1.701.311,67.
+
+## Causa Raiz
+
+1. **Mock Generator** tinha 25 marcas estáticas definidas
+2. **Dados gerados** aleatoriamente usavam apenas 22 dessas marcas
+3. **Estado inicial** tentava selecionar todas as 25 marcas (incluindo as 3 que não existiam nos produtos)
+4. **MultiSelect** não validava se os valores selecionados existiam nas opções disponíveis
+
+## Solução Implementada
+
+### 1. ProdutosFilters (produtos-filters.tsx)
+
+```tsx
+// Sanitize marca values to only include valid options
+const sanitizedMarcaValues = React.useMemo(() => {
+  const validValues = marcaOptions.map((opt) => opt.value)
+  return filters.marca.filter((value) => validValues.includes(value))
+}, [filters.marca, marcaOptions])
+```
+
+### 2. FilterContext (filter-context.tsx)
+
+```tsx
+// Validate and clean marca selections when availableMarcas changes
+React.useEffect(() => {
+  if (availableMarcas.length > 0 && state.marca.length > 0) {
+    const validMarcaSlugs = availableMarcas.map((marca) =>
+      marca.toLowerCase().replace(/\s+/g, '-'),
+    )
+    const validMarcaSelections = state.marca.filter((marca) =>
+      validMarcaSlugs.includes(marca),
+    )
+    if (validMarcaSelections.length !== state.marca.length) {
+      dispatch({ type: 'SET_MARCA', payload: validMarcaSelections })
+    }
+  }
+}, [availableMarcas, state.marca])
+```
+
+### 3. MultiSelect (multi-select.tsx)
+
+```tsx
+// Sanitize values to only include valid options
+const sanitizedValues = React.useMemo(() => {
+  const validValues = options.map((opt) => opt.value)
+  return value.filter((v) => validValues.includes(v))
+}, [value, options])
+
+// Use sanitized values for all operations
+const effectiveValue = sanitizedValues
+```
+
+## Resultado
+
+- Contador agora mostra valores coerentes (22/22)
+- Totais de estoque são consistentes
+- Não há mais discrepâncias entre valores selecionados e opções disponíveis

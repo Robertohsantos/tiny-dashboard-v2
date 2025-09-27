@@ -1,0 +1,4027 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Igniter API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Default server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Accounts",
+      "description": "Account management"
+    },
+    {
+      "name": "API Keys",
+      "description": "API key management"
+    },
+    {
+      "name": "Authentication",
+      "description": "Authentication management"
+    },
+    {
+      "name": "Invitation",
+      "description": "Organization invitation management including sending, accepting, and canceling invites"
+    },
+    {
+      "name": "Membership",
+      "description": "Organization membership management including role updates and member removal"
+    },
+    {
+      "name": "Organization",
+      "description": "Organization management including creation, updates, verification, and statistics"
+    },
+    {
+      "name": "Integration",
+      "description": "Third-party integration management including installation, configuration, and removal"
+    },
+    {
+      "name": "User",
+      "description": "User profile management including memberships and account updates"
+    },
+    {
+      "name": "Webhook",
+      "description": "Webhook configuration and event management for real-time notifications"
+    },
+    {
+      "name": "Session",
+      "description": "User session management including active session tracking and token revocation"
+    },
+    {
+      "name": "Plan",
+      "description": "Subscription plan management and pricing information"
+    },
+    {
+      "name": "Billing",
+      "description": "Subscription billing management including checkout sessions and customer portal access"
+    },
+    {
+      "name": "Content"
+    },
+    {
+      "name": "Help Center",
+      "description": "REST API endpoints for help center and documentation"
+    },
+    {
+      "name": "Blog",
+      "description": "REST API endpoints for blog posts and content management"
+    },
+    {
+      "name": "notification",
+      "description": "Manage user notifications"
+    },
+    {
+      "name": "Submission",
+      "description": "Manage form submissions and lead data"
+    },
+    {
+      "name": "lead",
+      "description": "Manage customer leads."
+    }
+  ],
+  "paths": {
+    "/account": {
+      "get": {
+        "summary": "List user linked accounts",
+        "operationId": "listUserAccounts",
+        "tags": ["Accounts"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Link external account",
+        "operationId": "linkAccount",
+        "tags": ["Accounts"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountsLinkAccountBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Unlink external account",
+        "operationId": "unlinkAccount",
+        "tags": ["Accounts"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountsUnlinkAccountBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-key": {
+      "get": {
+        "summary": "List organization API keys",
+        "operationId": "listApiKeys",
+        "tags": ["API Keys"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new API key",
+        "operationId": "createApiKey",
+        "tags": ["API Keys"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/API KeysCreateApiKeyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-key/:id": {
+      "get": {
+        "summary": "Get API key by ID",
+        "operationId": "getApiKey",
+        "tags": ["API Keys"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update existing API key",
+        "operationId": "updateApiKey",
+        "tags": ["API Keys"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/API KeysUpdateApiKeyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete API key",
+        "operationId": "deleteApiKey",
+        "tags": ["API Keys"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/social-provider": {
+      "get": {
+        "summary": "List available providers",
+        "operationId": "getActiveSocialProvider",
+        "tags": ["Authentication"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sign-in": {
+      "post": {
+        "summary": "Sign in with OAuth provider",
+        "operationId": "signInWithProvider",
+        "tags": ["Authentication"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticationSignInWithProviderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sign-in/otp": {
+      "post": {
+        "summary": "Sign in with OTP code",
+        "operationId": "signInWithOtp",
+        "tags": ["Authentication"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticationSignInWithOtpBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/send-otp-verification": {
+      "post": {
+        "summary": "Send OTP verification code",
+        "operationId": "sendOtpCode",
+        "tags": ["Authentication"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticationSendOtpCodeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sign-out": {
+      "post": {
+        "summary": "Sign out current user",
+        "operationId": "signOut",
+        "tags": ["Authentication"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "summary": "Get current user session",
+        "operationId": "getCurrentSession",
+        "tags": ["Authentication"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/set-active-organization": {
+      "post": {
+        "summary": "Set active organization",
+        "operationId": "setActiveOrganization",
+        "tags": ["Authentication"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticationSetActiveOrganizationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitation/:id": {
+      "get": {
+        "summary": "Get invitation details",
+        "operationId": "getInvitation",
+        "tags": ["Invitation"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitation": {
+      "post": {
+        "summary": "Create new invitation",
+        "operationId": "createInvitation",
+        "tags": ["Invitation"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationCreateInvitationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitation/:id/accept": {
+      "post": {
+        "summary": "Accept invitation",
+        "operationId": "acceptInvitation",
+        "tags": ["Invitation"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitation/:id/reject": {
+      "post": {
+        "summary": "Reject invitation",
+        "operationId": "rejectInvitation",
+        "tags": ["Invitation"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitation/:id/cancel": {
+      "delete": {
+        "summary": "Cancel invitation",
+        "operationId": "cancelInvitation",
+        "tags": ["Invitation"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/membership": {
+      "get": {
+        "summary": "Search organization members",
+        "operationId": "searchMemberships",
+        "tags": ["Membership"],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/membership/:id": {
+      "put": {
+        "summary": "Update member role",
+        "operationId": "updateMembership",
+        "tags": ["Membership"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MembershipUpdateMembershipBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove member",
+        "operationId": "deleteMembership",
+        "tags": ["Membership"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization": {
+      "post": {
+        "summary": "Create new organization",
+        "operationId": "createOrganization",
+        "tags": ["Organization"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreateOrganizationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update organization",
+        "operationId": "updateOrganization",
+        "tags": ["Organization"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationUpdateOrganizationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/stats": {
+      "get": {
+        "summary": "Get organization stats",
+        "operationId": "getOrganizationStats",
+        "tags": ["Organization"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/verify": {
+      "post": {
+        "summary": "Verify organization",
+        "operationId": "verifyOrganization",
+        "tags": ["Organization"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationVerifyOrganizationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/:id": {
+      "delete": {
+        "summary": "Delete organization",
+        "operationId": "deleteOrganization",
+        "tags": ["Organization"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/public/:slug": {
+      "get": {
+        "summary": "Get organization by slug",
+        "operationId": "getOrganizationBySlug",
+        "tags": ["Organization"],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations": {
+      "get": {
+        "summary": "List available integrations",
+        "operationId": "listIntegrations",
+        "tags": ["Integration"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/:slug": {
+      "get": {
+        "summary": "Get integration by ID",
+        "operationId": "getIntegration",
+        "tags": ["Integration"],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update integration config",
+        "operationId": "updateIntegration",
+        "tags": ["Integration"],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationUpdateIntegrationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/:slug/install": {
+      "post": {
+        "summary": "Install integration",
+        "operationId": "installIntegration",
+        "tags": ["Integration"],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrationInstallIntegrationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/integrations/:slug/uninstall": {
+      "delete": {
+        "summary": "Remove integration",
+        "operationId": "deleteIntegration",
+        "tags": ["Integration"],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/memberships": {
+      "get": {
+        "summary": "List user memberships",
+        "operationId": "listUserMemberships",
+        "tags": ["User"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user": {
+      "put": {
+        "summary": "Update user profile",
+        "operationId": "updateUser",
+        "tags": ["User"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateUserBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/:id": {
+      "delete": {
+        "summary": "Delete user account",
+        "operationId": "deleteUser",
+        "tags": ["User"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook": {
+      "get": {
+        "summary": "List organization webhooks",
+        "operationId": "listWebhooks",
+        "tags": ["Webhook"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new webhook",
+        "operationId": "createWebhook",
+        "tags": ["Webhook"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookCreateWebhookBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook/:id": {
+      "get": {
+        "summary": "Get webhook by ID",
+        "operationId": "getWebhook",
+        "tags": ["Webhook"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update existing webhook",
+        "operationId": "updateWebhook",
+        "tags": ["Webhook"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookUpdateWebhookBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete webhook",
+        "operationId": "deleteWebhook",
+        "tags": ["Webhook"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook/events": {
+      "get": {
+        "summary": "List available events",
+        "operationId": "listEvents",
+        "tags": ["Webhook"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/session": {
+      "get": {
+        "summary": "List user sessions",
+        "operationId": "listUserSessions",
+        "tags": ["Session"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/session/revoke": {
+      "delete": {
+        "summary": "Revoke user session",
+        "operationId": "revokeSession",
+        "tags": ["Session"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionRevokeSessionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plan": {
+      "get": {
+        "summary": "List subscription plans",
+        "operationId": "listPlans",
+        "tags": ["Plan"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/subscription": {
+      "get": {
+        "summary": "Get billing customer info",
+        "operationId": "getSessionCustomer",
+        "tags": ["Billing"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create payment checkout",
+        "operationId": "createCheckoutSession",
+        "tags": ["Billing"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingCreateCheckoutSessionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/subscription/open": {
+      "post": {
+        "summary": "Create billing manager",
+        "operationId": "createSessionManager",
+        "tags": ["Billing"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingCreateSessionManagerBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/list": {
+      "get": {
+        "summary": "List content posts with filtering options",
+        "operationId": "List Content",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["help", "blog", "docs", "update"]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/get": {
+      "get": {
+        "summary": "Get a specific content post by type and slug using query parameters",
+        "operationId": "Get Content",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/categories": {
+      "get": {
+        "summary": "Get available categories for a specific content type",
+        "operationId": "Get Content Categories",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["help", "blog", "docs", "update"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/search": {
+      "get": {
+        "summary": "Search posts across all content types or within a specific type",
+        "operationId": "Search Content",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["help", "blog", "docs", "update"]
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/related": {
+      "get": {
+        "summary": "Get related content posts for a specific post using query parameters",
+        "operationId": "Get Related Content",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 3
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/blog": {
+      "get": {
+        "summary": "List blog posts with filtering",
+        "operationId": "List Blog Posts",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/help": {
+      "get": {
+        "summary": "List help center articles with category filtering",
+        "operationId": "List Help Articles",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/docs": {
+      "get": {
+        "summary": "List documentation with category filtering",
+        "operationId": "List Documentation",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/content/updates": {
+      "get": {
+        "summary": "List product updates and changelog",
+        "operationId": "List Updates",
+        "tags": ["Content"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/help-center/articles/:slug": {
+      "get": {
+        "summary": "Retrieve a specific help center article by its slug",
+        "operationId": "Get Help Article",
+        "tags": ["Help Center"],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/help-center/articles": {
+      "get": {
+        "summary": "List help center articles with optional filters",
+        "operationId": "List Help Articles",
+        "tags": ["Help Center"],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/help-center/search": {
+      "get": {
+        "summary": "Search articles in the help center",
+        "operationId": "Search Help Articles",
+        "tags": ["Help Center"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/help-center/categories": {
+      "get": {
+        "summary": "List all help center categories",
+        "operationId": "Get Help Categories",
+        "tags": ["Help Center"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/help-center/popular": {
+      "get": {
+        "summary": "List popular help center articles",
+        "operationId": "Get Popular Articles",
+        "tags": ["Help Center"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blog/posts/:slug": {
+      "get": {
+        "summary": "Retrieve a specific blog post by its slug",
+        "operationId": "Get Blog Post",
+        "tags": ["Blog"],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blog/posts": {
+      "get": {
+        "summary": "List blog posts with optional filters and pagination",
+        "operationId": "List Blog Posts",
+        "tags": ["Blog"],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 12
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "featured",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blog/search": {
+      "get": {
+        "summary": "Search blog posts with full-text search",
+        "operationId": "Search Blog Posts",
+        "tags": ["Blog"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blog/popular": {
+      "get": {
+        "summary": "List popular blog posts based on engagement",
+        "operationId": "Get Popular Blog Posts",
+        "tags": ["Blog"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blog/posts/:slug/related": {
+      "get": {
+        "summary": "Get posts related to a specific blog post",
+        "operationId": "Get Related Blog Posts",
+        "tags": ["Blog"],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 3
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blog/stats": {
+      "get": {
+        "summary": "Get overall blog statistics and metrics",
+        "operationId": "Get Blog Statistics",
+        "tags": ["Blog"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notification": {
+      "get": {
+        "summary": "List user notifications with real-time updates",
+        "operationId": "List",
+        "tags": ["notification"],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "unreadOnly",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "USER_INVITED",
+                "BILLING_SUCCESS",
+                "BILLING_FAILED",
+                "MEMBER_JOINED",
+                "MEMBER_LEFT",
+                "LEAD_CREATED",
+                "LEAD_UPDATED",
+                "SUBSCRIPTION_CREATED",
+                "SUBSCRIPTION_UPDATED",
+                "SUBSCRIPTION_CANCELED",
+                "INTEGRATION_CONNECTED",
+                "INTEGRATION_DISCONNECTED",
+                "WEBHOOK_FAILED",
+                "API_KEY_CREATED",
+                "API_KEY_EXPIRED",
+                "SYSTEM_MAINTENANCE",
+                "GENERAL"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notification/:id/read": {
+      "patch": {
+        "summary": "Mark a notification as read",
+        "operationId": "Mark as Read",
+        "tags": ["notification"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notification/read-all": {
+      "patch": {
+        "summary": "Mark all notifications as read",
+        "operationId": "Mark All as Read",
+        "tags": ["notification"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notification/unread-count": {
+      "get": {
+        "summary": "Get count of unread notifications",
+        "operationId": "Unread Count",
+        "tags": ["notification"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notification/preferences": {
+      "patch": {
+        "summary": "Update notification preferences",
+        "operationId": "Update Preferences",
+        "tags": ["notification"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationUpdate PreferencesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notification/:id": {
+      "delete": {
+        "summary": "Delete a notification",
+        "operationId": "Delete",
+        "tags": ["notification"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions": {
+      "get": {
+        "summary": "List submissions with filters",
+        "operationId": "listSubmissions",
+        "tags": ["Submission"],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "leadId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new submission",
+        "operationId": "createSubmission",
+        "tags": ["Submission"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionCreateSubmissionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/:id": {
+      "get": {
+        "summary": "Get submission by ID",
+        "operationId": "getSubmission",
+        "tags": ["Submission"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update submission data",
+        "operationId": "updateSubmission",
+        "tags": ["Submission"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionUpdateSubmissionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete submission by ID",
+        "operationId": "deleteSubmission",
+        "tags": ["Submission"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads": {
+      "get": {
+        "summary": "List all leads for an organization.",
+        "operationId": "List",
+        "tags": ["lead"],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new lead.",
+        "operationId": "Create",
+        "tags": ["lead"],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadCreateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads/:id": {
+      "get": {
+        "summary": "Retrieve a single lead by ID.",
+        "operationId": "Retrieve",
+        "tags": ["lead"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update an existing lead by ID.",
+        "operationId": "Update",
+        "tags": ["lead"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadUpdateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a lead by ID.",
+        "operationId": "Delete",
+        "tags": ["lead"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountsLinkAccountBody": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "callbackURL": {
+            "type": "string"
+          }
+        },
+        "required": ["provider", "callbackURL"],
+        "additionalProperties": false
+      },
+      "AccountsUnlinkAccountBody": {
+        "type": "object",
+        "properties": {
+          "provider": {}
+        },
+        "additionalProperties": false
+      },
+      "API KeysCreateApiKeyBody": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "neverExpires": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": ["description"],
+        "additionalProperties": false
+      },
+      "API KeysUpdateApiKeyBody": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuthenticationSignInWithProviderBody": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "callbackURL": {
+            "type": "string"
+          }
+        },
+        "required": ["provider"],
+        "additionalProperties": false
+      },
+      "AuthenticationSignInWithOtpBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "otpCode": {
+            "type": "string"
+          }
+        },
+        "required": ["email", "otpCode"],
+        "additionalProperties": false
+      },
+      "AuthenticationSendOtpCodeBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["sign-in", "email-verification", "forget-password"]
+          }
+        },
+        "required": ["email", "type"],
+        "additionalProperties": false
+      },
+      "AuthenticationSetActiveOrganizationBody": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string"
+          }
+        },
+        "required": ["organizationId"],
+        "additionalProperties": false
+      },
+      "InvitationCreateInvitationBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": ["admin", "member"]
+          }
+        },
+        "required": ["email", "role"],
+        "additionalProperties": false
+      },
+      "MembershipSearchMembershipsQuery": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "sortBy": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "string",
+            "enum": ["asc", "desc"]
+          },
+          "search": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MembershipUpdateMembershipBody": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrganizationCreateOrganizationBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "options": {
+                "type": "object",
+                "properties": {
+                  "has_demo_data": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "contact": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "additionalProperties": false
+              },
+              "links": {
+                "type": "object",
+                "properties": {
+                  "website": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "linkedin": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "instagram": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "youtube": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "twitter": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "tiktok": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "facebook": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "withDemoData": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": ["name", "slug"],
+        "additionalProperties": false
+      },
+      "OrganizationVerifyOrganizationBody": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": ["slug"],
+        "additionalProperties": false
+      },
+      "OrganizationUpdateOrganizationBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IntegrationInstallIntegrationBody": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": ["metadata"],
+        "additionalProperties": false
+      },
+      "IntegrationUpdateIntegrationBody": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": ["metadata"],
+        "additionalProperties": false
+      },
+      "UserUpdateUserBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "contact": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "notifications": {
+                "type": "object",
+                "properties": {
+                  "preferences": {
+                    "type": "object",
+                    "properties": {
+                      "USER_INVITED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "email": {
+                            "type": "boolean",
+                            "default": true
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "BILLING_SUCCESS": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "BILLING_FAILED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "MEMBER_JOINED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "MEMBER_LEFT": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "LEAD_CREATED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "LEAD_UPDATED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "SUBSCRIPTION_CREATED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "SUBSCRIPTION_UPDATED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "SUBSCRIPTION_CANCELED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "INTEGRATION_CONNECTED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "INTEGRATION_DISCONNECTED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "WEBHOOK_FAILED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "API_KEY_CREATED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "API_KEY_EXPIRED": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "SYSTEM_MAINTENANCE": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "GENERAL": {
+                        "type": "object",
+                        "properties": {
+                          "inApp": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/inApp"
+                          },
+                          "email": {
+                            "$ref": "#/properties/metadata/properties/notifications/properties/preferences/properties/USER_INVITED/properties/email"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              "extra": {
+                "type": "object",
+                "properties": {
+                  "referral_source": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "WebhookCreateWebhookBody": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["url", "secret", "events"],
+        "additionalProperties": false
+      },
+      "WebhookUpdateWebhookBody": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "secret": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SessionRevokeSessionBody": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": ["token"],
+        "additionalProperties": false
+      },
+      "BillingCreateCheckoutSessionBody": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          },
+          "cycle": {
+            "type": "string",
+            "enum": ["month", "year", "week", "day"]
+          }
+        },
+        "required": ["plan", "cycle"],
+        "additionalProperties": false
+      },
+      "BillingCreateSessionManagerBody": {
+        "type": "object",
+        "properties": {
+          "returnUrl": {
+            "type": "string"
+          }
+        },
+        "required": ["returnUrl"],
+        "additionalProperties": false
+      },
+      "ContentList ContentQuery": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["help", "blog", "docs", "update"]
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentGet ContentQuery": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          }
+        },
+        "required": ["type", "slug"],
+        "additionalProperties": false
+      },
+      "ContentGet Content CategoriesQuery": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["help", "blog", "docs", "update"]
+          }
+        },
+        "required": ["type"],
+        "additionalProperties": false
+      },
+      "ContentSearch ContentQuery": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["help", "blog", "docs", "update"]
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          },
+          "offset": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentGet Related ContentQuery": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "default": 3
+          }
+        },
+        "required": ["type", "slug"],
+        "additionalProperties": false
+      },
+      "ContentList Blog PostsQuery": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentList Help ArticlesQuery": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentList DocumentationQuery": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentList UpdatesQuery": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Help CenterList Help ArticlesQuery": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10
+          },
+          "offset": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "Help CenterSearch Help ArticlesQuery": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 2
+          },
+          "category": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 10
+          }
+        },
+        "required": ["q"],
+        "additionalProperties": false
+      },
+      "Help CenterGet Popular ArticlesQuery": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 5
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlogList Blog PostsQuery": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "search": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 12
+          },
+          "offset": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0
+          },
+          "featured": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlogSearch Blog PostsQuery": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 2
+          },
+          "category": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 10
+          }
+        },
+        "required": ["q"],
+        "additionalProperties": false
+      },
+      "BlogGet Popular Blog PostsQuery": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 5
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlogGet Related Blog PostsQuery": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 3
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationListQuery": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "minimum": 1,
+            "default": 1
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          },
+          "unreadOnly": {
+            "type": "boolean",
+            "default": false
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "USER_INVITED",
+              "BILLING_SUCCESS",
+              "BILLING_FAILED",
+              "MEMBER_JOINED",
+              "MEMBER_LEFT",
+              "LEAD_CREATED",
+              "LEAD_UPDATED",
+              "SUBSCRIPTION_CREATED",
+              "SUBSCRIPTION_UPDATED",
+              "SUBSCRIPTION_CANCELED",
+              "INTEGRATION_CONNECTED",
+              "INTEGRATION_DISCONNECTED",
+              "WEBHOOK_FAILED",
+              "API_KEY_CREATED",
+              "API_KEY_EXPIRED",
+              "SYSTEM_MAINTENANCE",
+              "GENERAL"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationUpdate PreferencesBody": {
+        "type": "object",
+        "properties": {
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "inApp": {
+                "type": "boolean"
+              },
+              "email": {
+                "type": "boolean"
+              }
+            },
+            "required": ["inApp", "email"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["preferences"],
+        "additionalProperties": false
+      },
+      "SubmissionListSubmissionsQuery": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "sortBy": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "string",
+            "enum": ["asc", "desc"]
+          },
+          "search": {
+            "type": "string"
+          },
+          "leadId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubmissionCreateSubmissionBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            },
+            "required": ["source", "data"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["name", "email", "phone", "metadata"],
+        "additionalProperties": false
+      },
+      "SubmissionUpdateSubmissionBody": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "nullable": true
+          },
+          "leadId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LeadListQuery": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "sortBy": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "string",
+            "enum": ["asc", "desc"]
+          },
+          "search": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LeadCreateBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "nullable": true
+          }
+        },
+        "required": ["email"],
+        "additionalProperties": false
+      },
+      "LeadUpdateBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "token": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your token"
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "better-auth.session_token"
+      }
+    }
+  }
+}

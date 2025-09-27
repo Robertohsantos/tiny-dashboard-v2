@@ -1,0 +1,53 @@
+---
+id: bug-pattern-dropdownmenu-not-opening---modal-prop-issue
+type: bug_pattern
+confidence: 0.95
+created_at: '2025-09-25T05:10:06.175Z'
+updated_at: '2025-09-25T05:10:06.175Z'
+tags:
+  - dropdown
+  - ui-bug
+  - radix-ui
+  - produtos-page
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+# DropdownMenu Not Opening - Modal Prop Issue
+
+## Problem
+
+The "Ferramentas" (Tools) and "Colunas" (Columns) dropdown buttons on the Products page were not opening when clicked.
+
+## Root Cause
+
+The `modal={false}` prop was causing issues with the DropdownMenu component. This prop was intended to prevent the dropdown from being rendered in a portal, but was interfering with the dropdown's functionality.
+
+## Solution
+
+1. Removed `modal={false}` prop from both DropdownMenu components
+2. Added `className="flex items-center"` to the Button triggers for better alignment
+3. Added `z-[100]` to DropdownMenuContent to ensure proper z-index layering
+
+## Code Changes
+
+```tsx
+// Before
+<DropdownMenu modal={false}>
+
+// After
+<DropdownMenu>
+```
+
+## Additional Improvements
+
+- Added explicit z-index to dropdown content: `className="w-64 z-[100]"`
+- Ensured button triggers have proper flex alignment
+
+## Result
+
+Both dropdown menus now open correctly when clicked, displaying their respective options:
+
+- Ferramentas: Shows management tools (Transfer, Purchase Requirement, etc.)
+- Colunas: Shows column visibility toggles

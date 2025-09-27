@@ -1,0 +1,35 @@
+---
+id: architectural-decision-dashboard-data-separation-implementation
+type: architectural_decision
+category: implementation
+confidence: 0.95
+created_at: '2025-09-20T04:40:50.928Z'
+updated_at: '2025-09-20T04:53:41.191Z'
+tags:
+  - dashboard
+  - data-separation
+  - dev-prod
+  - mock-data
+  - architecture
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships:
+  - id: architectural-decision-development-vs-production-data-strategy
+    target_type: architectural_decision
+    type: implements
+    strength: 0.95
+    confidence: 0.9
+    validated: false
+    created_at: '2025-09-20T04:53:41.189Z'
+---
+
+Successfully implemented a clean separation between development mock data and production data fetching for the dashboard-vendas page.
+
+Key changes:
+
+1. Created /src/mocks/ directory for all mock data (dashboard-data.json, chart-data.json, metrics-data.json)
+2. Implemented conditional data fetching in /src/modules/dashboard/data/data-fetchers.ts based on NODE_ENV
+3. Updated all dashboard components to receive data via props instead of hardcoded values
+4. Added TypeScript interfaces for type safety
+
+Result: In development, mock data is loaded from JSON files. In production, the system is ready to fetch from database (Prisma queries to be implemented).

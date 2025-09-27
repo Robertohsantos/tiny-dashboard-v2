@@ -1,0 +1,73 @@
+---
+id: bug-pattern-correo-do-clculo-de-necessidade-de-compra
+type: bug_pattern
+category: bug-fixes
+confidence: 0.98
+created_at: '2025-09-25T03:48:05.386Z'
+updated_at: '2025-09-25T03:48:05.386Z'
+tags:
+  - purchase-requirement
+  - calculation-bug
+  - config-fix
+  - business-logic
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+# Correção do Cálculo de Necessidade de Compra
+
+## Problema Identificado
+
+O modal de necessidade de compra não retornava produtos para reposição, mesmo com períodos longos (1000 dias). O cálculo sempre retornava `suggestedQuantity = 0`.
+
+## Causas Raízes
+
+### 1. leadTimeDays indefinido
+
+- `PurchaseRequirementConfig` esperava `leadTimeDays` mas `defaultConfig` não definia
+- Causava `horizonDays = undefined + coverageDays = NaN`
+- **Solução**: Adicionado `leadTimeDays: 7` ao defaultConfig
+
+### 2. Lógica de cálculo incorreta
+
+- Calculava: `requiredQuantity = Math.max(0, safetyStock - minAfterLeadTime)`
+- Só sugeria compra quando estoque estava abaixo do estoque de segurança
+- NÃO considerava horizonte de cobertura desejado
+- **Solução**: Mudado para `targetInventory = demandDuringLeadTime + demandDuringCoverage + safetyStock`
+
+### 3. Método calculateRapid ausente
+
+- Sistema usava apenas calculateTimePhasedMRP complexo
+- **Solução**: Implementado método calculateRapid simples e direto
+
+### 4. Limite de validação baixo
+
+- API limitava coverageDays a 365
+- **Solução**: Aumentado limite para 1095 dias (3 anos)
+
+## Resultados Alcançados
+
+### Com 30 dias de cobertura:
+
+- 150 produtos precisam reposição
+- Investimento: R$ 40.371.366,67
+- SKU-CAL-0001: 420 unidades
+
+### Com 1000 dias de cobertura:
+
+- 150 produtos precisam reposição
+- Investimento: R$ 1.049.003.394,71
+- SKU-CAL-0001: 15.150 unidades
+
+## Arquivos Modificados
+
+1. `/src/modules/purchase-requirement/services/purchase-requirement.service.ts` - Adicionado leadTimeDays ao config
+2. `/src/modules/purchase-requirement/calculator.ts` - Corrigido cálculo e adicionado calculateRapid
+3. `/src/app/api/products/purchase-requirement/route.ts` - Aumentado limite de dias
+
+## Lições Aprendidas
+
+- Sempre verificar se configurações obrigatórias estão definidas
+- Validar que cálculos consideram objetivos de negócio (cobertura desejada)
+- Implementar métodos simples (RAPID) além dos complexos (TIME_PHASED)

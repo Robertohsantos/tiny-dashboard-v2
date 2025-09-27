@@ -1,0 +1,356 @@
+---
+title: 'Guia de Integração com Plugins - APIs Reais'
+description: 'Como configurar e usar as integrações reais dos plugins no SaaS Boilerplate'
+publishedAt: '2024-01-15'
+image: '/images/help-center/getting-started/plugin-integration.jpg'
+tags: ['plugins', 'integrações', 'apis', 'automação']
+---
+
+# Guia de Integração com Plugins - APIs Reais
+
+Este guia mostra como configurar e usar as integrações reais dos plugins no SaaS Boilerplate, permitindo que novos leads e submissões sejam automaticamente enviados para múltiplas plataformas.
+
+## Visão Geral
+
+O SaaS Boilerplate agora inclui implementações reais das APIs dos seguintes serviços:
+
+- **Zapier**: Webhooks para automações
+- **Telegram**: Bot API para notificações
+- **WhatsApp**: Via Twilio API
+- **Slack**: Webhooks para notificações em equipe
+- **Discord**: Webhooks para notificações em comunidade
+- **Make (Integromat)**: Webhooks para automações complexas
+- **Mailchimp**: API para gerenciamento de contatos
+
+## Como Funciona
+
+1. **Evento Disparado**: Quando um lead ou submissão é criado
+2. **Plugins Ativos**: Sistema busca integrações ativas da organização
+3. **Configuração**: Cada plugin é configurado com suas credenciais
+4. **Envio**: Dados são enviados para cada plataforma configurada
+5. **Confirmação**: Logs mostram o sucesso de cada envio
+
+## Configuração por Plataforma
+
+### 1. Zapier
+
+#### Como Configurar:
+
+1. Acesse [zapier.com](https://zapier.com)
+2. Crie um novo Zap com trigger "Webhooks by Zapier"
+3. Copie a URL do webhook gerada
+4. No SaaS Boilerplate, configure:
+   - `apiKey`: Sua chave da API do Zapier (opcional)
+   - `workspaceId`: ID do workspace (extraído da URL do webhook)
+   - `triggerId`: ID do trigger (extraído da URL do webhook)
+
+#### Exemplo de URL:
+
+```
+https://hooks.zapier.com/hooks/catch/123456/abcdef/
+```
+
+- `workspaceId`: `123456`
+- `triggerId`: `abcdef`
+
+### 2. Telegram
+
+#### Como Configurar:
+
+1. Acesse [@BotFather](https://t.me/botfather) no Telegram
+2. Crie um novo bot com `/newbot`
+3. Copie o token do bot
+4. Crie um grupo/canal ou converse com o bot
+5. Use `@userinfobot` para obter o Chat ID
+6. No SaaS Boilerplate, configure:
+   - `token`: Token do bot do Telegram
+   - `chatId`: ID do chat (pode ser negativo para grupos)
+
+#### Exemplo:
+
+```json
+{
+  "telegram": {
+    "token": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+    "chatId": "-1001234567890"
+  }
+}
+```
+
+### 3. WhatsApp (via Twilio)
+
+#### Como Configurar:
+
+1. Acesse [twilio.com](https://twilio.com)
+2. Ative o WhatsApp Sandbox ou configure WhatsApp Business API
+3. Copie as credenciais
+4. Configure variáveis de ambiente:
+   - `TWILIO_ACCOUNT_SID`
+   - `TWILIO_AUTH_TOKEN`
+   - `TWILIO_WHATSAPP_NUMBER`
+5. No SaaS Boilerplate, configure:
+   - `chatId`: Número do destinatário (ex: +5511999999999)
+
+### 4. Slack
+
+#### Como Configurar:
+
+1. Acesse seu workspace no Slack
+2. Vá para [api.slack.com/apps](https://api.slack.com/apps)
+3. Crie um novo app ou use um existente
+4. Adicione um webhook à configuração do app
+5. Copie a URL do webhook
+6. No SaaS Boilerplate, configure:
+   - `webhook`: URL completa do webhook do Slack
+
+#### Exemplo de URL:
+
+```
+https://example.com/slack/webhook
+```
+
+### 5. Discord
+
+#### Como Configurar:
+
+1. Acesse seu servidor no Discord
+2. Vá para Server Settings > Integrations > Webhooks
+3. Crie um novo webhook
+4. Copie a URL do webhook
+5. No SaaS Boilerplate, configure:
+   - `webhookUrl`: URL completa do webhook do Discord
+
+#### Exemplo de URL:
+
+```
+https://discord.com/api/webhooks/123456789012345678/abcdef1234567890
+```
+
+### 6. Make (Integromat)
+
+#### Como Configurar:
+
+1. Acesse [make.com](https://make.com)
+2. Crie um novo cenário (scenario)
+3. Adicione um trigger "Webhooks" > "Custom Webhook"
+4. Copie a URL do webhook gerada
+5. No SaaS Boilerplate, configure:
+   - `apiKey`: Sua chave da API do Make
+   - `workflowId`: ID do cenário (extraído da URL)
+   - `environment`: Ambiente (production/staging/development)
+
+#### Exemplo de URL:
+
+```
+https://hook.eu1.make.com/your-webhook-id
+```
+
+- `workflowId`: `your-webhook-id`
+
+### 7. Mailchimp
+
+#### Como Configurar:
+
+1. Acesse [mailchimp.com](https://mailchimp.com)
+2. Vá para Account > Extras > API Keys
+3. Gere uma nova chave API
+4. Copie o prefixo do servidor (ex: us1)
+5. Crie ou selecione uma lista de contatos
+6. Copie o ID da lista
+7. No SaaS Boilerplate, configure:
+   - `apiKey`: Chave da API do Mailchimp
+   - `listId`: ID da lista de contatos
+   - `serverPrefix`: Prefixo do servidor (ex: us1)
+
+#### Exemplo:
+
+```json
+{
+  "mailchimp": {
+    "apiKey": "your-mailchimp-api-key",
+    "listId": "your-mailchimp-list-id",
+    "serverPrefix": "us1"
+  }
+}
+```
+
+## Como Usar no Código
+
+### Exemplo Prático - Lead Criado
+
+```typescript
+// No controller de leads
+create: igniter.mutation({
+  // ... outras configurações
+  handler: async ({ context, request, response }) => {
+    // Criar o lead no banco
+    const lead = await context.features.lead.repository.create({
+      email: request.body.email,
+      name: request.body.name,
+      phone: request.body.phone,
+      organizationId,
+    })
+
+    // Buscar plugins ativos da organização
+    const plugins =
+      await context.integration.setupPluginsForOrganization(organizationId)
+
+    // Disparar evento para cada plugin
+    for (const pluginKey in plugins) {
+      const plugin = plugins[pluginKey as keyof typeof plugins]
+
+      if (plugin && 'sendEvent' in plugin) {
+        await plugin.sendEvent({
+          event: 'lead.created',
+          data: lead,
+        })
+      }
+    }
+
+    return response.created(lead)
+  },
+})
+```
+
+### Tratamento de Erros
+
+```typescript
+// O sistema já trata erros automaticamente
+// mas você pode adicionar logs específicos
+try {
+  const plugins =
+    await context.integration.setupPluginsForOrganization(organizationId)
+
+  for (const pluginKey in plugins) {
+    const plugin = plugins[pluginKey as keyof typeof plugins]
+
+    if (plugin && 'sendEvent' in plugin) {
+      const result = await plugin.sendEvent({
+        event: 'lead.created',
+        data: lead,
+      })
+
+      if (result.success) {
+        console.log(`✅ ${pluginKey} notified successfully`)
+      } else {
+        console.error(`❌ ${pluginKey} failed:`, result.error)
+      }
+    }
+  }
+} catch (error) {
+  console.error('Plugin notification failed:', error)
+  // Lead ainda é criado mesmo se plugins falharem
+}
+```
+
+## Monitoramento e Logs
+
+### Logs Gerados
+
+Cada plugin gera logs específicos:
+
+```
+[Zapier] Event "lead.created" sent successfully
+[Telegram] Event "lead.created" sent successfully, messageId: 123
+[WhatsApp] Event "lead.created" sent successfully, messageSid: SM123
+[Slack] Event "lead.created" sent successfully
+[Discord] Event "lead.created" sent successfully
+[Make] Event "lead.created" sent successfully to workflow abc123
+[Mailchimp] Lead added to list abc123def4, contactId: 123
+```
+
+### Dashboard de Integrações
+
+Para monitorar o status das integrações:
+
+1. Acesse `/app/integrations` no SaaS Boilerplate
+2. Veja o status de cada integração
+3. Configure novas integrações
+4. Teste conexões com os serviços
+
+## Segurança e Boas Práticas
+
+### Credenciais Seguras
+
+- Nunca commite chaves API no código
+- Use variáveis de ambiente para credenciais sensíveis
+- Implemente rotação periódica de chaves
+- Use permissões mínimas necessárias
+
+### Rate Limiting
+
+- Respeite os limites de API de cada plataforma
+- Implemente backoff exponencial para retries
+- Monitore uso de APIs para evitar bloqueios
+
+### Tratamento de Falhas
+
+- Continue processando mesmo se um plugin falhar
+- Log falhas para análise posterior
+- Implemente circuit breaker para APIs instáveis
+- Tenha fallback para notificações críticas
+
+## Testando as Integrações
+
+### Teste Manual
+
+```bash
+# Criar um lead de teste
+curl -X POST http://localhost:3000/api/v1/leads \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "email": "test@example.com",
+    "name": "Test User",
+    "phone": "+5511999999999"
+  }'
+```
+
+### Verificar Logs
+
+```bash
+# Verificar logs do servidor
+tail -f logs/app.log | grep -E "(Zapier|Telegram|WhatsApp|Slack|Discord|Make|Mailchimp)"
+```
+
+## Suporte e Troubleshooting
+
+### Problemas Comuns
+
+**Erro de Autenticação:**
+
+- Verifique se as credenciais estão corretas
+- Confirme se a API key não expirou
+- Valide permissões da conta
+
+**Webhook não Funciona:**
+
+- Verifique se a URL está correta
+- Confirme se o webhook está ativo
+- Teste o webhook manualmente
+
+**Rate Limit Excedido:**
+
+- Implemente delays entre chamadas
+- Monitore uso da API
+- Considere upgrade do plano
+
+**Dados não Chegam:**
+
+- Verifique formato dos dados enviados
+- Confirme se o evento está sendo disparado
+- Teste com dados mínimos primeiro
+
+### Documentação Adicional
+
+- [Zapier Webhooks](https://zapier.com/developer/documentation/v2/webhooks/)
+- [Telegram Bot API](https://core.telegram.org/bots/api)
+- [Twilio WhatsApp API](https://www.twilio.com/docs/whatsapp)
+- [Slack Webhooks](https://api.slack.com/messaging/webhooks)
+- [Discord Webhooks](https://discord.com/developers/docs/resources/webhook)
+- [Make Webhooks](https://www.make.com/en/help/app/webhooks)
+- [Mailchimp API](https://mailchimp.com/developer/)
+
+---
+
+Este guia mostra como o SaaS Boilerplate integra com múltiplas plataformas de automação, permitindo que cada organização configure suas próprias notificações e automações baseadas em eventos de leads e submissões.

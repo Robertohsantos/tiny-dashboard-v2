@@ -1,0 +1,44 @@
+---
+id: architectural-decision-dashboard-layout-structure-pattern
+type: architectural_decision
+category: frontend
+confidence: 0.95
+created_at: '2025-09-20T04:52:37.176Z'
+updated_at: '2025-09-20T04:52:37.176Z'
+tags:
+  - layout
+  - dashboard
+  - sidebar
+  - visual-hierarchy
+  - ui-structure
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+Implemented specific layout structure for dashboard pages with clear visual hierarchy.
+
+Layout Architecture:
+
+1. SidebarProvider wrapper (top level)
+2. AppSidebar component (blue, straight edges, no overflow)
+3. SidebarInset containing:
+   - SiteHeader
+   - Main content area with:
+     - Background: bg-gray-100 (light gray)
+     - Content container: bg-white rounded-3xl with padding
+
+Visual Hierarchy:
+
+- Layer 1: Gray background (bg-gray-100)
+- Layer 2: White rounded container on top of gray
+- Layer 3: All dashboard content inside white container
+
+Key Learning:
+User corrected initial implementation where blue was bleeding into dashboard area. Solution was to:
+
+1. Remove "variant='inset'" from AppSidebar
+2. Remove rounded corners from sidebar
+3. Keep blue color strictly within sidebar boundaries
+
+File: /src/app/dashboard-vendas/page.tsx

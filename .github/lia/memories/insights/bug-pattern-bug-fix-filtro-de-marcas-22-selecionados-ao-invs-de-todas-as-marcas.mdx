@@ -1,0 +1,101 @@
+---
+id: >-
+  bug-pattern-bug-fix-filtro-de-marcas-22-selecionados-ao-invs-de-todas-as-marcas
+type: bug_pattern
+confidence: 0.95
+created_at: '2025-09-24T07:50:59.490Z'
+updated_at: '2025-09-24T07:50:59.490Z'
+tags:
+  - produtos
+  - filtros
+  - bug-fix
+  - ui-consistency
+  - marcas
+  - initialized-state
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+# Bug Fix: Filtro de Marcas "22 selecionados"
+
+## 🐛 Problema
+
+- Filtro de marcas iniciava com "22 selecionados" ao invés de "Todas as marcas"
+- Comportamento inconsistente com outros filtros (depósito e fornecedor)
+- Símbolo de filtro ativo e botão "limpar filtros" sempre visíveis
+- Contradição com a documentação que define "arrays vazios = todos selecionados"
+
+## 🔍 Causa Raiz
+
+1. **Inicialização incorreta** em `src/app/produtos/page.tsx` (linhas 39-43)
+
+   - Arrays sendo inicializados com todos os IDs específicos
+   - `marca: allMarcaSlugs` continha 22 marcas específicas
+
+2. **Função `isAllSelected` não tratava arrays vazios** em `src/modules/produtos/utils/produtos-transforms.utils.ts`
+   - Só considerava "todos selecionados" quando `count === totalItems`
+   - Não tratava `count === 0` como "todos selecionados"
+
+## 🛠️ Soluções Implementadas
+
+### 1. Correção da Inicialização
+
+**Arquivo:** `src/app/produtos/page.tsx`
+
+```ts
+// ❌ ANTES (incorreto)
+initialFilters={{
+  deposito: allDepositos,     // Array com IDs específicos
+  marca: allMarcaSlugs,       // Array com 22 marcas específicas
+  fornecedor: allFornecedores, // Array com IDs específicos
+}}
+
+// ✅ DEPOIS (correto)
+initialFilters={{
+  deposito: [],    // Array vazio = "todos selecionados"
+  marca: [],       // Array vazio = "todos selecionados"
+  fornecedor: [],  // Array vazio = "todos selecionados"
+}}
+```
+
+### 2. Correção da Função isAllSelected
+
+**Arquivo:** `src/modules/produtos/utils/produtos-transforms.utils.ts`
+
+```ts
+// ✅ Adicionado suporte a arrays vazios em todos os casos
+case FilterType.DEPOSITO:
+  return count === 0 || (FILTER_TOTALS.DEPOSITOS > 0 && count === FILTER_TOTALS.DEPOSITOS)
+
+case FilterType.FORNECEDOR:
+  return count === 0 || (FILTER_TOTALS.FORNECEDORES > 0 && count === FILTER_TOTALS.FORNECEDORES)
+
+case FilterType.MARCA:
+  if (typeof totalItems !== 'number' || totalItems === 0) {
+    return count === 0
+  }
+  return count === 0 || count === totalItems
+```
+
+## ✅ Resultado
+
+- **Consistência visual:** Todos os filtros mostram "Todos os..." ao inicializar
+- **Comportamento correto:** Símbolos e botões aparecem apenas quando necessário
+- **Logs confirmam:** `filter recebido: undefined` (sem filtros aplicados)
+- **Conformidade:** Alinhamento total com a documentação estabelecida
+
+## 📋 Checklist de Validação
+
+- [x] Filtros inicializam com texto correto ("Todas as marcas")
+- [x] Consistência entre depósito, marca e fornecedor
+- [x] Símbolo de filtro ativo oculto quando não há filtros
+- [x] Botão "limpar filtros" oculto quando não há filtros
+- [x] Funcionalidade de filtragem mantida para seleções específicas
+- [x] Logs mostram `filter: undefined` corretamente
+
+## 🔗 Arquivos de Referência
+
+- Documentação: `docs/produtos-filter-logic.md` (seção 3.2, item 3)
+- Contexto: `src/modules/produtos/contexts/filter-context.tsx` (função `isFilterActive`)
+- Constantes: `src/modules/produtos/constants/produtos-filters.constants.ts`

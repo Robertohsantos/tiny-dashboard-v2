@@ -1,0 +1,28 @@
+{
+  "sandbox": false,
+  "mcpServers": {
+    "igniter": {
+      "command": "npx",
+      "args": ["-y", "@igniter-js/mcp-server@latest"],
+      "env": {
+        "GOOGLE_API_KEY": "",
+        "GITHUB_TOKEN": ""
+      }
+    },
+    "browser": {
+      "command": "npx",
+      "env": {},
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    }
+  },
+  "usageStatisticsEnabled": true,
+  "hideTips": false,
+  "hideBanner": false,
+  "excludedProjectEnvVars": ["DEBUG", "DEBUG_MODE", "NODE_ENV"],
+  "includeDirectories": ["./.github/lia/memories", "./.cursor/rules"],
+  "loadMemoryFromIncludeDirectories": true
+}

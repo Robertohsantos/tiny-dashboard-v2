@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, feature/*]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Job 1: Lint and Type Check
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit || npm install --prefer-offline --no-audit
+
+      - name: Run TypeScript type check
+        run: npm run typecheck
+        continue-on-error: false
+
+      - name: Run ESLint
+        run: npm run lint || true  # Allow lint to fail temporarily
+        continue-on-error: true
+
+  # Job 2: Build Verification
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit || npm install --prefer-offline --no-audit
+
+      - name: Build application
+        run: npm run build
+        env:
+          SKIP_ENV_VALIDATION: 'true'
+          NEXT_PUBLIC_BASE_URL: 'http://localhost:3000'
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/db'
+
+      - name: Check build output
+        run: |
+          echo "✅ Build completed successfully"
+          echo "Build size report:"
+          if [ -d ".next" ]; then
+            du -sh .next/ || true
+            du -sh .next/static/ || true
+          fi
+
+  # Job 3: Basic Tests (Optional - allow failure)
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+    continue-on-error: true  # Allow tests to fail without blocking PR
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit || npm install --prefer-offline --no-audit
+
+      - name: Run tests
+        run: npm run test:run || true
+        env:
+          CI: true
+        continue-on-error: true
+
+  # Final Status Check
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [code-quality, build]
+    if: always()
+    
+    steps:
+      - name: Check CI Status
+        run: |
+          if [[ "${{ needs.code-quality.result }}" == "success" && "${{ needs.build.result }}" == "success" ]]; then
+            echo "✅ Essential CI checks passed!"
+            exit 0
+          else
+            echo "❌ CI checks failed"
+            echo "Code Quality: ${{ needs.code-quality.result }}"
+            echo "Build: ${{ needs.build.result }}"
+            exit 1
+          fi

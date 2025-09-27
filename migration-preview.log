@@ -1,0 +1,36 @@
+
+> saas-boilerplate@2.0.2 migrate:hooks:dry-run
+> tsx scripts/migrate-to-validated-hooks.ts --migrate --dry-run
+
+🚀 Starting Validated Hooks Migration Tool
+
+Found 291 files to process
+
+🔄 Previewing migration...
+
+Previewing migration on 1 files...
+
+
+🔄 Migration Results
+
+✅ 1 files successfully migrated
+❌ 0 files failed
+⏭️  0 files skipped (no changes needed)
+
+Successful migrations:
+  📄 src/app/dashboard-vendas/(components)/dashboard-content-v2.tsx
+     ✓ Updated import from '@/modules/dashboard/hooks/dashboard/use-dashboard-data' to '@/modules/dashboard/hooks/dashboard/use-dashboard-data-validated'
+     ✓ Renamed useDashboardData to useDashboardDataValidated
+     ✓ Added onValidationError handler to useDashboardDataValidated
+     ✓ Renamed usePrefetchDashboardData to usePrefetchDashboardDataValidated
+     ✓ Renamed usePrefetchDashboardData to usePrefetchDashboardDataValidated
+     ✓ [DRY RUN] Would update file with 2 hook migrations
+
+📊 Migration Summary:
+  Total hooks migrated: 2
+
+⚠️  Important: Please review the migrated files and:
+  1. Run your tests to ensure everything works
+  2. Test the application in development mode
+  3. Update any error handling if needed
+  4. Consider adding telemetry monitoring

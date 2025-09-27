@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Test Filter Change</title>
+  </head>
+  <body>
+    <h1>Test Filter Change</h1>
+    <p>Open the console and run this code to test filter changes:</p>
+    <pre>
+// Get React DevTools and find the filter context
+// This will simulate a filter change programmatically
+
+// Option 1: Dispatch a filter change event
+window.dispatchEvent(new CustomEvent('test-filter-change', { 
+    detail: { 
+        deposito: [], 
+        marca: [], 
+        fornecedor: [] 
+    } 
+}));
+
+// Option 2: Try to access React internals
+const reactRoot = document.querySelector('#__next');
+if (reactRoot && reactRoot._reactRootContainer) {
+    console.log('React root found');
+}
+    </pre>
+
+    <script>
+      // Test script to run in browser console
+      console.log(
+        'Test page loaded. Use browser console to test filter changes.',
+      )
+    </script>
+  </body>
+</html>

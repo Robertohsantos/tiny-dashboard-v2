@@ -1,0 +1,40 @@
+---
+id: design-dashboard-color-scheme-implementation
+type: design
+category: ui-ux
+confidence: 0.95
+created_at: '2025-09-20T04:52:05.175Z'
+updated_at: '2025-09-20T04:52:05.175Z'
+tags:
+  - design-system
+  - colors
+  - tailwind
+  - css-variables
+  - theming
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships: []
+---
+
+Implemented a new color scheme for the dashboard based on user requirements.
+
+Color System:
+
+- Primary: Blue #3366FF (HSL: 220 100% 60%)
+- Success: Green #4CAF50 with variants (50, 100, 600)
+- Danger: Red #FF5252 with variants (50, 100, 600)
+- Warning: Yellow #FFC107 with variants
+
+Implementation:
+
+1. Updated CSS variables in globals.css
+2. Extended Tailwind config with custom color palettes
+3. Applied semantic color classes (success-50, danger-600, etc.)
+
+UI Structure:
+
+- Sidebar: Blue primary color (bg-sidebar)
+- Main background: Gray (bg-gray-100)
+- Content container: White with rounded corners (bg-white rounded-3xl)
+
+Key insight: User emphasized blue should be LIMITED to sidebar only, not spread across dashboard.

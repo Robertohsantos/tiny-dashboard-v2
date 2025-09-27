@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-09-21T07:58:19.901Z",
+  "performance": {
+    "avgResponseTime": 379.28629624999996,
+    "p50ResponseTime": 200.87536599999999,
+    "p95ResponseTime": 795.5528619999995,
+    "p99ResponseTime": 2250.817951
+  },
+  "errors": {
+    "totalErrors": 0,
+    "errorRate": 0,
+    "commonErrors": []
+  },
+  "bundle": {
+    "size": 0,
+    "validationOverhead": 0
+  },
+  "coverage": {
+    "lines": 0,
+    "functions": 0,
+    "branches": 0,
+    "statements": 0
+  }
+}

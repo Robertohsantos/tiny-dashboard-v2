@@ -1,0 +1,346 @@
+---
+description: Provides the correct and validated pattern for creating and using procedures (middlewares) in Igniter.js.
+globs: ["src/features/**/procedures/**"]
+alwaysApply: false
+---
+
+# Igniter.js: Procedures (Middlewares)
+
+This guide provides the **correct and validated** pattern for creating and using procedures (middlewares) in Igniter.js, specifically tailored for the SaaS Boilerplate authentication system.
+
+## 🚨 CRITICAL: SaaS Boilerplate Authentication Integration
+
+**⚠️ MANDATORY: Always use the SaaS Boilerplate's AuthFeatureProcedure for authentication**
+
+### Essential Files to Always Check:
+**BEFORE implementing any procedure or authentication functionality, you MUST check:**
+
+1. **`src/igniter.context.ts`** - Global services and context structure
+2. **`src/@saas-boilerplate/features/auth/procedures/auth.procedure.ts`** - Current SaaS Boilerplate auth implementation
+3. **`prisma/schema.prisma`** - Database models and relationships
+4. **`src/@saas-boilerplate/features/auth/auth.interface.ts`** - Auth types and schemas
+5. **`src/services/auth.ts`** - Better Auth configuration
+6. **`src/igniter.router.ts`** - Available controllers and routes
+
+## 1. How Procedures Extend Context
+
+Procedures in Igniter.js extend the context for subsequent actions by **returning an object**. This is a critical pattern to understand.
+
+-   **DO NOT use `next(newContext)`:** Unlike frameworks like Express, you must not call a `next` function to extend context.
+-   **RETURN an object:** The object you return from the procedure's handler will be shallow-merged into the `context` that the final action receives.
+-   **Procedure Independence**: Procedures are independent. When multiple procedures are used in an action (e.g., `use: [procA, procB]`), the context returned by `procA` is **not** available within the handler of `procB`. Each procedure receives the same initial context. All returned contexts are merged and made available to the final action handler.
+-   **Special Case: `next()` for Post-Action Processing**: The `next()` function in a procedure's handler should **only** be used if the procedure needs to capture and process the *result* of the subsequent action (e.g., for auditing, performance monitoring, or response modification). In such cases, `await next()` should be called, and the result should then be handled. Otherwise, procedures should either return an object to extend the context (e.g., `{ auth: { user } }`) or `void` (implicitly or explicit `return;`) to simply allow the request to proceed without modifying the context.
+-   **Auth Procedure Context for Optional Authentication**: When an `authProcedure` is configured with `required: false` (or if authentication fails but is not strictly required), it **MUST** explicitly return an object like `{ auth: { user: null } }` to maintain consistent context typing, indicating that no authenticated user is present.
+-   **Handler Typing**: The `ctx` parameter in a procedure's handler should **not** be explicitly typed to avoid potential type conflicts and allow for proper type inference. The return type of the handler can be explicitly typed, but it's best to analyze existing procedures in the project to maintain consistency with the established patterns.
+
+### ✅ SaaS Boilerplate AuthProcedure Usage
+
+**⚠️ CRITICAL: Always use the existing AuthFeatureProcedure from SaaS Boilerplate**
+
+Instead of creating custom auth procedures, use the existing `AuthFeatureProcedure`:
+
+```typescript
+// ✅ CORRECT: Use SaaS Boilerplate AuthFeatureProcedure
+import { AuthFeatureProcedure } from "@/features/auth/procedures/auth-procedure";
+
+export const eventsController = igniter.controller({
+  name: "events",
+  path: "/events",
+  actions: {
+    create: igniter.mutation({
+      name: "Create",
+      description: "Create new event",
+      path: "/",
+      method: "POST",
+      use: [AuthFeatureProcedure()], // ✅ SaaS Boilerplate auth
+      body: z.object({ title: z.string(), description: z.string() }),
+      handler: async ({ request, response, context }) => {
+        // 🔍 Authentication validation inside handler
+        const session = await context.auth.getSession({
+          requirements: 'authenticated',
+          roles: ['admin', 'owner', 'member']
+        });
+
+        if (!session || !session.organization) {
+          return response.unauthorized('Authentication required');
+        }
+
+        // Authentication: Access authenticated user from SaaS Boilerplate auth system
+        const userId = session.user!.id;
+
+        // Business Logic: Use injected repository
+        const event = await context.database.event.create({
+          data: {
+            title: request.body.title,
+            description: request.body.description,
+            userId,
+          }
+        });
+
+        return response.created(event);
+      },
+    }),
+
+    list: igniter.query({
+      name: "List",
+      description: "List user events",
+      path: "/",
+      use: [AuthFeatureProcedure()], // ✅ SaaS Boilerplate auth
+      handler: async ({ response, context }) => {
+        const userId = context.auth.session.user!.id;
+
+        const events = await context.database.event.findMany({
+          where: { userId }
+        });
+
+        return response.success(events);
+      },
+    }),
+  },
+});
+```
+
+### ❌ What NOT to Do (Common Mistakes):
+
+```typescript
+// ❌ INCORRECT - Creating custom auth procedures
+export const myCustomAuthProcedure = igniter.procedure({
+  name: "myAuth",
+  handler: async (options, ctx) => {
+    // Don't create custom auth procedures
+    // Always use AuthFeatureProcedure from SaaS Boilerplate
+  },
+});
+
+// ❌ INCORRECT - Wrong import path
+import { authProcedure } from "../procedures/auth-procedure"; // Wrong path
+
+// ❌ INCORRECT - Wrong context access
+const userId = context.auth.session.user.id; // Wrong: missing getSession() validation
+const database = context.database; // ✅ Correct: services structure
+```
+
+### ✅ SaaS Boilerplate Auth Context Structure:
+
+```typescript
+handler: async ({ context }) => {
+  // ✅ CORRECT: SaaS Boilerplate auth context access
+  const userId = context.auth.session.user!.id;           // Authenticated user ID
+  const user = context.auth.session.user;                 // Full user object
+  const organization = context.auth.session.organization; // Organization (if applicable)
+
+  // ✅ CORRECT: Global services access
+  const database = context.database;             // Prisma client
+  const passwordService = context.password;      // Password hashing
+  const jwtService = context.jwt;               // JWT operations
+};
+```
+
+```typescript
+// src/features/auth/procedures/auth.procedure.ts (Example - Refactored)
+import { igniter } from "@/igniter";
+import { User } from "@prisma/client";
+import { JWT_SECRET } from "../auth.interfaces";
+import { AuthRepository } from "../repositories/auth.repository"; // Import here for instantiation within procedure
+
+// Define the type for the options that can be passed when using the procedure.
+/**
+ * @typedef {object} AuthProcedureOptions
+ * @property {boolean} [required=true] - Indicates if authentication is mandatory for the route.
+ */
+type AuthProcedureOptions = {
+  required?: boolean;
+};
+
+// Define the shape of the extended context we are adding. This is for documentation purposes.
+/**
+ * @typedef {object} AuthContext
+ * @property {object} auth - Authentication context object.
+ * @property {object} auth.session - User session details.
+ * @property {User | null} auth.session.user - The authenticated user object or null if unauthenticated.
+ * @property {AuthRepository} auth.repository - The auth repository for user-related database operations.
+ */
+type AuthContext = {
+  auth: {
+    session: {
+      user: User | null;
+    };
+    repository: AuthRepository;
+  };
+};
+
+/**
+   * @method handler
+   * @description
+   * Procedure responsible for authenticating the user by validating the JWT token from the request cookies.
+   * Instantiates the AuthRepository and injects it into the context at `auth.repository`.
+   * If `options.required` is true, authentication is enforced: if the session token is missing, invalid, or the user is not found, a 401 Unauthorized response is returned.
+   * If `options.required` is false, unauthenticated access is allowed and the user in context may be null.
+   *
+   * @param {AuthProcedureOptions} [options={ required: true }] - Options for the procedure. If `required` is true, authentication is mandatory.
+   * @param {object} ctx - The context object provided by Igniter.js.
+   * @param {object} ctx.request - The incoming request object.
+   * @param {object} ctx.response - The response builder object.
+   * @param {object} ctx.context - The current application context.
+   * @returns {Promise<AuthContext | Response | void>} Returns the extended context with user info and AuthRepository if authentication passes or is not required, or a 401 response if authentication fails and is required.
+   */
+export const authProcedure = igniter.procedure({
+  name: "authentication",  
+  handler: async (options: AuthProcedureOptions = { required: true }, ctx): Promise<AuthContext | Response | void> => {
+    const { request, response, context } = ctx;
+    
+    // Observation: Extract the session token from request cookies.
+    const sessionToken = request.cookies.get("sessionToken");
+
+    // Business Rule: Instantiate AuthRepository using the database client from the context.
+    const authRepository = new AuthRepository(context.database);
+
+    // Security Rule: If authentication is required and there is no session token, return 401 Unauthorized.
+    if (options.required && !sessionToken) {
+      throw new IgniterResponseError({
+        code: "ERR_UNAUTHORIZED",
+        message: "Authentication required. Please provide a valid session token.",
+      })
+    }
+
+    let userId: string | undefined;
+
+    // Security Rule: If a session token exists, attempt to verify it and extract the user ID.
+    if (sessionToken) {
+      const decoded = context.jwt.verifyToken(sessionToken) as { userId: string };
+      if (decoded) userId = decoded.userId;
+    }
+
+    // Business Rule: Attempt to find the user by ID using the AuthRepository.
+    const user = await authRepository.getUserById(userId);
+
+    // Security Rule: If authentication is required but the user is not found, return 401 Unauthorized.
+    if (options.required && !user) {
+      throw new IgniterResponseError({
+        code: "ERR_UNAUTHORIZED",
+        message: "Authenticated user not found.",
+      })
+    }
+
+    // Response: Return the extended context with user session and repository.
+    return { auth: { session: { user }, repository: authRepository } };
+  },
+});
+```
+## 2. Applying Procedures to Actions
+
+Procedures are applied to individual actions or entire controllers using the `use` property.
+
+-   **Action-Level:** Apply to a specific query or mutation. This is the most common and recommended approach.
+-   **Controller-Level:** Apply to all actions within a controller.
+
+### ✅ SaaS Boilerplate Procedure Usage
+
+```typescript
+import { igniter } from "@/igniter";
+import { z } from "zod";
+import { AuthFeatureProcedure } from "@/features/auth/procedures/auth-procedure"; // SaaS Boilerplate auth
+
+export const eventsController = igniter.controller({
+  name: "events",
+  path: "/events",
+  actions: {
+    create: igniter.mutation({
+      name: "Create",
+      description: "Create new event",
+      path: "/",
+      method: "POST",
+      use: [AuthFeatureProcedure()], // ✅ SaaS Boilerplate auth only
+      body: z.object({
+        title: z.string().min(1, "Title is required"),
+        description: z.string().optional(),
+        date: z.string().datetime()
+      }),
+      handler: async ({ request, response, context }) => {
+        // Authentication: Access user from SaaS Boilerplate auth system
+        const userId = context.auth.session.user!.id;
+
+        // Business Logic: Create event using global database service
+        const event = await context.database.event.create({
+          data: {
+            title: request.body.title,
+            description: request.body.description,
+            date: new Date(request.body.date),
+            userId,
+          }
+        });
+
+        return response.created(event);
+      },
+    }),
+
+    list: igniter.query({
+      name: "List",
+      description: "List user events",
+      path: "/",
+      use: [AuthFeatureProcedure()], // ✅ SaaS Boilerplate auth only
+      handler: async ({ response, context }) => {
+        const userId = context.auth.session.user!.id;
+
+        const events = await context.database.event.findMany({
+          where: { userId },
+          orderBy: { date: 'asc' }
+        });
+
+        return response.success(events);
+      },
+    }),
+
+    getById: igniter.query({
+      name: "GetById",
+      description: "Get event by ID",
+      path: "/:id" as const,
+      use: [AuthFeatureProcedure()], // ✅ SaaS Boilerplate auth only
+      handler: async ({ request, response, context }) => {
+        const userId = context.auth.session.user!.id;
+        const eventId = request.params.id;
+
+        const event = await context.database.event.findFirst({
+          where: {
+            id: eventId,
+            userId, // Security: Only allow access to user's own events
+          }
+        });
+
+        if (!event) {
+          return response.notFound("Event not found");
+        }
+
+        return response.success(event);
+      },
+    }),
+  },
+});
+
+## 3. Common Pitfalls
+
+### ❌ Incorrectly Extending Context or Misusing `next()`
+
+```typescript
+// ❌ WRONG - Using next() to extend context or not handling its return
+handler: async (options, ctx) => {
+  const { context, next } = ctx;
+  const newContext = { ...context, auth: { user } };
+  return next(newContext); // This will fail or lose context extension!
+  // OR (if not awaiting next() when result processing is needed)
+  next(); // Loses the opportunity to process the action's result.
+}
+```
+
+### ❌ Forgetting to Return the Context Object
+
+```typescript
+// ❌ WRONG - Modifying context directly
+handler: async (options, ctx) => {
+  const { context } = ctx;
+  context.auth = { user }; // This mutation will be lost!
+  return;
+}
+```
+
+

@@ -1,0 +1,54 @@
+---
+id: bug-pattern-bug-pattern---sidebar-blue-color-overflow
+type: bug_pattern
+category: ui-fixes
+confidence: 1
+created_at: '2025-09-20T04:52:54.281Z'
+updated_at: '2025-09-20T04:54:06.425Z'
+tags:
+  - sidebar
+  - css
+  - visual-bug
+  - overflow
+  - styling
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships:
+  - id: design-dashboard-color-scheme-implementation
+    target_type: design
+    type: extends
+    strength: 0.9
+    confidence: 0.95
+    validated: false
+    created_at: '2025-09-20T04:54:06.420Z'
+---
+
+Encountered and fixed a visual bug where sidebar blue color was overflowing into the dashboard area.
+
+Problem:
+
+- Sidebar blue color was "extravasando" (overflowing) around the dashboard
+- User wanted blue limited strictly to sidebar with straight edges
+
+Root Cause:
+
+1. Using variant="inset" on AppSidebar component
+2. Sidebar component had rounded corners and floating styles
+
+Solution Applied:
+
+1. Removed variant="inset" from AppSidebar in page.tsx
+2. Simplified sidebar div className to remove floating/rounded styles
+3. Changed from: "flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg..."
+4. To simply: "flex h-full w-full flex-col bg-sidebar"
+
+Result:
+
+- Sidebar now has straight edges
+- Blue color contained within sidebar boundaries
+- Clean separation between sidebar and main content area
+
+Files Modified:
+
+- /src/app/dashboard-vendas/page.tsx
+- /src/components/ui/sidebar.tsx

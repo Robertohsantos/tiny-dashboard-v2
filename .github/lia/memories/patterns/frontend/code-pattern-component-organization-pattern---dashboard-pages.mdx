@@ -1,0 +1,43 @@
+---
+id: code-pattern-component-organization-pattern---dashboard-pages
+type: code_pattern
+category: frontend
+confidence: 0.9
+created_at: '2025-09-20T04:51:01.733Z'
+updated_at: '2025-09-20T04:53:50.372Z'
+tags:
+  - nextjs
+  - components
+  - organization
+  - app-router
+  - best-practices
+source: user_input
+project_root: /home/roberto/tiny-dashboard
+relationships:
+  - id: architectural-decision-dashboard-layout-structure-pattern
+    target_type: architectural_decision
+    type: uses
+    strength: 0.8
+    confidence: 0.85
+    validated: false
+    created_at: '2025-09-20T04:53:50.371Z'
+---
+
+Established a component organization pattern for dashboard pages in Next.js App Router.
+
+Pattern implemented:
+
+- Page-specific components go in: `/app/[page-name]/(components)/`
+- The parentheses in "(components)" make it a route group (ignored by Next.js routing)
+- Generic/reusable components stay in: `/components/ui/`
+
+Applied to dashboard-vendas:
+
+- Moved `section-cards.tsx` and `chart-area-interactive.tsx` to `/app/dashboard-vendas/(components)/`
+- Kept generic `data-table.tsx` in `/components/ui/`
+
+Benefits:
+
+- Clear separation between page-specific and reusable components
+- Better code organization and maintainability
+- Follows Next.js App Router conventions

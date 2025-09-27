@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "enabled": true,
+  "percentage": 100,
+  "features": {
+    "dashboard": true,
+    "produtos": true,
+    "reports": false,
+    "settings": false
+  },
+  "monitoring": {
+    "telemetryEnabled": true,
+    "errorThreshold": 10,
+    "performanceThreshold": 100,
+    "autoRollback": true,
+    "alertWebhook": null
+  },
+  "rollout": {
+    "strategy": "percentage",
+    "stages": [
+      { "percentage": 10, "duration": "1h" },
+      { "percentage": 25, "duration": "2h" },
+      { "percentage": 50, "duration": "4h" },
+      { "percentage": 75, "duration": "8h" },
+      { "percentage": 100, "duration": "stable" }
+    ]
+  },
+  "excluded": {
+    "users": [],
+    "routes": ["/api/health", "/api/status"],
+    "components": []
+  },
+  "createdAt": "2025-09-21T08:37:00.000Z",
+  "updatedAt": "2025-09-22T04:52:00.000Z"
+}

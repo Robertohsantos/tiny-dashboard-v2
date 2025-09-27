@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "igniter": {
+      "command": "node",
+      "args": ["./node_modules/@igniter-js/mcp-server/dist/index.js"],
+      "env": {
+        "GOOGLE_API_KEY": "",
+        "GITHUB_TOKEN": ""
+      }
+    },
+    "browser": {
+      "command": "./node_modules/.bin/mcp-server-playwright",
+      "args": [],
+      "env": {}
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "context7": {
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-dca4a6c1-babb-428f-84bb-ee2b5a4d749f"
+      },
+      "env": {
+        "CONTEXT7_API_KEY": "ctx7sk-dca4a6c1-babb-428f-84bb-ee2b5a4d749f"
+      }
+    }
+  }
+}

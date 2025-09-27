@@ -1,0 +1,572 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ApiKey {
+  id             String       @id @default(uuid())
+  description    String
+  key            String       @unique
+  enabled        Boolean      @default(true)
+  neverExpires   Boolean      @default(false)
+  expiresAt      DateTime?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, key])
+  @@map("api_key")
+}
+
+model Webhook {
+  id     String   @id @default(uuid())
+  url    String
+  secret String
+  events String[]
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  Integration Integration[]
+
+  @@map("webhook")
+}
+
+model Member {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invitations Invitation[]
+
+  teamId String?
+
+  @@unique([organizationId, userId])
+  @@map("memberships")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  role          String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+  members       Member[]
+  invitations   Invitation[]
+  notifications Notification[]
+  metadata      Json?
+
+  twoFactorEnabled Boolean?
+  twofactors       TwoFactor[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id @default(uuid())
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime
+  updatedAt            DateTime
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId String?
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String?
+  logo      String?
+  createdAt DateTime
+  metadata  String?
+
+  members          Member[]
+  invitations      Invitation[]
+  apiKeys          ApiKey[]
+  webhooks         Webhook[]
+  integrations     Integration[]
+  submissions      Submission[]
+  leads            Lead[]
+  notifications    Notification[]
+  products         Product[]
+  sales            Sale[]
+  saleMetrics      SaleMetric[]
+  financialMetrics FinancialMetric[]
+  visitorData      VisitorData[]
+
+  customer Customer?
+
+  @@unique([slug])
+  @@map("organization")
+}
+
+model Invitation {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String
+  expiresAt      DateTime
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  Member         Member?      @relation(fields: [memberId], references: [id])
+  memberId       String?
+
+  teamId String?
+
+  @@map("invitation")
+}
+
+model Integration {
+  id       String  @id @default(uuid())
+  provider String
+  enabled  Boolean @default(true)
+  metadata Json?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  webhookId String?
+  webhook   Webhook? @relation(fields: [webhookId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, organizationId])
+  @@index([organizationId])
+  @@index([webhookId])
+  @@map("integration")
+}
+
+model TwoFactor {
+  id          String @id @default(uuid())
+  secret      String
+  backupCodes String
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor")
+}
+
+model Customer {
+  id         String  @id @default(uuid())
+  providerId String  @unique
+  name       String
+  email      String?
+  metadata   Json?
+
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("customer")
+}
+
+model Plan {
+  id          String  @id @default(uuid())
+  providerId  String  @unique
+  slug        String  @unique
+  name        String
+  description String?
+  metadata    Json?
+
+  prices Price[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  archived  Boolean  @default(false)
+
+  @@map("plan")
+}
+
+model Price {
+  id            String @id @default(uuid())
+  providerId    String @unique
+  slug          String @unique
+  amount        Int
+  currency      String
+  interval      String // 'day' | 'week' | 'month' | 'year'
+  intervalCount Int
+  metadata      Json?
+
+  subscriptions Subscription[]
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("price")
+}
+
+enum ProrationBehavior {
+  create_prorations
+  none
+}
+
+enum SubscriptionStatus {
+  incomplete
+  incomplete_expired
+  trialing
+  active
+  past_due
+  canceled
+  unpaid
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  providerId         String             @unique
+  quantity           Int?
+  trialDays          Int?
+  metadata           Json?
+  billingCycleAnchor DateTime?
+  prorationBehavior  ProrationBehavior?
+  status             SubscriptionStatus
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  priceId String
+  price   Price  @relation(fields: [priceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscription")
+}
+
+model Lead {
+  id       String  @id @default(uuid())
+  email    String
+  name     String?
+  phone    String?
+  metadata Json?
+
+  submissions Submission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("lead")
+}
+
+model Submission {
+  id String @id @default(uuid())
+
+  metadata Json?
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("submissions")
+}
+
+model Notification {
+  id     String    @id @default(uuid())
+  type   String
+  data   Json // JSON payload with dynamic content for the notification
+  readAt DateTime? // Timestamp when the notification was read
+  action Json? // Optional action URL or path
+
+  recipientId String
+  recipient   User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recipientId])
+  @@index([organizationId])
+  @@index([recipientId, organizationId])
+  @@index([createdAt])
+  @@map("notification")
+}
+
+// Dashboard Sales Models
+model Sale {
+  id          String @id @default(uuid())
+  amount      Float
+  itemCount   Int
+  orderNumber String @unique
+  status      String
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([createdAt])
+  @@index([status])
+  @@map("sale")
+}
+
+model SaleMetric {
+  id            String   @id @default(uuid())
+  date          DateTime @db.Date
+  totalSales    Float
+  itemsSold     Int
+  orders        Int
+  averageTicket Float
+
+  // TODO: Add marketplace field for filtering by marketplace
+  // marketplaceId String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, date])
+  @@index([organizationId])
+  @@index([date])
+  @@map("sale_metric")
+}
+
+model FinancialMetric {
+  id                   String   @id @default(uuid())
+  date                 DateTime @db.Date
+  salesWithoutShipping Float
+  costOfGoods          Float
+  taxes                Float
+  marketplaceFees      Float
+  grossProfit          Float
+  shippingDifference   Float    @default(0)
+
+  // TODO: Add marketplace field for filtering by marketplace
+  // marketplaceId String?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, date])
+  @@index([organizationId])
+  @@index([date])
+  @@map("financial_metric")
+}
+
+model VisitorData {
+  id      String   @id @default(uuid())
+  date    DateTime @db.Date
+  desktop Int      @default(0)
+  mobile  Int      @default(0)
+  tablet  Int      @default(0)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, date])
+  @@index([organizationId])
+  @@index([date])
+  @@map("visitor_data")
+}
+
+// Product Management Models
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+model Product {
+  id           String        @id @default(uuid())
+  sku          String        @unique
+  name         String
+  description  String?
+  brand        String
+  category     String
+  warehouse    String
+  supplier     String
+  costPrice    Decimal       @db.Decimal(10, 2)
+  sellPrice    Decimal       @db.Decimal(10, 2)
+  currentStock Int           @default(0)
+  minimumStock Int           @default(10)
+  maximumStock Int           @default(1000)
+  leadTimeDays Int           @default(7)
+  status       ProductStatus @default(ACTIVE)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesHistory   SalesHistory[]
+  stockHistory   StockAvailability[]
+  stockCoverages StockCoverage[]
+
+  @@index([organizationId])
+  @@index([sku])
+  @@index([status])
+  @@index([warehouse])
+  @@index([supplier])
+  @@map("product")
+}
+
+model SalesHistory {
+  id              String   @id @default(uuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  date            DateTime @db.Date
+  unitsSold       Int
+  price           Decimal  @db.Decimal(10, 2)
+  revenue         Decimal  @db.Decimal(10, 2)
+  promotionFlag   Boolean  @default(false)
+  promotionType   String? // BLACK_FRIDAY, CLEARANCE, etc
+  discountPercent Decimal? @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, date])
+  @@index([productId, date])
+  @@index([date])
+  @@map("sales_history")
+}
+
+model StockAvailability {
+  id              String   @id @default(uuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  date            DateTime @db.Date
+  minutesInStock  Int      @default(1440) // 0-1440 (minutes in 24h)
+  stockoutEvents  Int      @default(0)
+  averageStock    Float    @default(0)
+  openingStock    Int      @default(0)
+  closingStock    Int      @default(0)
+  restockQuantity Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, date])
+  @@index([productId, date])
+  @@map("stock_availability")
+}
+
+model StockCoverage {
+  id           String   @id @default(uuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  calculatedAt DateTime @default(now())
+
+  // Coverage calculations
+  coverageDays    Float // P50 coverage
+  coverageDaysP90 Float // P90 coverage (conservative)
+  coverageDaysP10 Float // P10 coverage (optimistic)
+
+  // Demand forecasting
+  demandForecast   Float // Daily demand forecast
+  demandStdDev     Float // Standard deviation
+  trendFactor      Float // Growth/decline factor
+  seasonalityIndex Float // Day-of-week index
+
+  // Adjusted metrics
+  adjustedDemand Float // Demand adjusted for availability
+  confidence     Float // Confidence score (0-1)
+
+  // Calculation metadata
+  historicalDays Int // Days of history used
+  algorithm      String // Algorithm version/type
+  parameters     Json? // Calculation parameters
+
+  // Recommendations
+  reorderPoint    Int? // Suggested reorder point
+  reorderQuantity Int? // Suggested order quantity
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime // Cache expiration
+
+  @@index([productId, calculatedAt])
+  @@index([expiresAt])
+  @@map("stock_coverage")
+}
