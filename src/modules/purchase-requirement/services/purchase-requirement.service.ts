@@ -42,6 +42,8 @@ class PurchaseRequirementService {
     includeStockReserve: true,
     stockReserveDays: 7,
     respectPackSize: true, // Pack size mantido
+    includeDeliveryBuffer: false,
+    deliveryBufferDays: 0,
     enableParallel: true,
     maxConcurrency: 5,
     showOnlyNeeded: true,
@@ -306,10 +308,7 @@ class PurchaseRequirementService {
         : baseLeadTime
 
     const currentStock = Number(product.currentStock ?? 0)
-    const allocatedStock = openOrders.reduce(
-      (total, order) => total + (order.pendingQuantity ?? 0),
-      0,
-    )
+    const allocatedStock = 0
     const packSize = Math.max(Number(product.packSize ?? 1), 1)
 
     return {
@@ -518,3 +517,5 @@ class PurchaseRequirementService {
 
 // Export singleton instance
 export const purchaseRequirementService = new PurchaseRequirementService()
+
+

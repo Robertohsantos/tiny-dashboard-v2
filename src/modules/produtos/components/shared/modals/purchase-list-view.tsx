@@ -1,24 +1,16 @@
 /**
- * Purchase List Modal Component
- * Shows the generated purchase list after calculation
+ * Purchase List View Component
+ * Rendered inside the purchase requirement modal when results are available.
  */
 
 'use client'
 
 import * as React from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogMain,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { DialogDescription, DialogFooter, DialogMain, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Download,
   Package,
   ShoppingCart,
   Users,
@@ -30,49 +22,74 @@ import {
   X,
   ShoppingBag,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/modules/ui'
 import type {
   PurchaseBatchResult,
   PurchaseRequirementResult,
+  PurchaseRequirementConfig,
 } from '@/modules/purchase-requirement/types'
 import { useToast } from '@/modules/ui/hooks/use-toast'
 
-interface PurchaseListModalProps {
-  /** Whether the modal is open */
-  open: boolean
-  /** Callback when modal should close */
-  onOpenChange: (open: boolean) => void
+interface PurchaseListViewProps {
   /** Calculation results to display */
-  results: PurchaseBatchResult | null
+  results: PurchaseBatchResult
+  /** Callback when the user wants to close the flow */
+  onClose: () => void
   /** Callback to go back to configuration */
   onBack?: () => void
+  /** Trigger recalculation with updated configuration */
+  onConfigChange?: (config: Partial<PurchaseRequirementConfig>) => void | Promise<void>
+  /** Whether a recalculation is in progress */
+  isLoading?: boolean
 }
 
 /**
- * Purchase list modal component
- * Displays the calculated purchase requirements in an organized, actionable format
+ * Purchase list view rendered inside the purchase requirement modal.
  */
-export function PurchaseListModal({
-  open,
-  onOpenChange,
+export function PurchaseListView({
   results,
+  onClose,
   onBack,
-}: PurchaseListModalProps) {
+  onConfigChange,
+  isLoading = false,
+}: PurchaseListViewProps) {
   const { toast } = useToast()
+  const portalContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(
+    null,
+  )
   const [searchTerm, setSearchTerm] = React.useState('')
   const [selectedProducts, setSelectedProducts] = React.useState<Set<string>>(
     new Set(),
   )
   const [quantities, setQuantities] = React.useState<Record<string, number>>({})
+
+  const baseCoverageDays = results.config.coverageDays ?? 0
+  const configBufferEnabled = results.config.includeDeliveryBuffer ?? false
+  const configBufferDays = results.config.deliveryBufferDays ?? 0
+  const effectiveCoverageDays =
+    baseCoverageDays + (configBufferEnabled ? configBufferDays : 0)
+
+  const coverageLabel = (configBufferEnabled && configBufferDays > 0)
+    ? `${effectiveCoverageDays} dias (base ${baseCoverageDays} + entrega ${configBufferDays})`
+    : `${baseCoverageDays} dias`
+
+  const [bufferEnabled, setBufferEnabled] = React.useState(configBufferEnabled)
+  const [bufferDaysInput, setBufferDaysInput] = React.useState(
+    configBufferEnabled ? String(configBufferDays) : ''
+  )
+  const [bufferDirty, setBufferDirty] = React.useState(false)
+  const [bufferError, setBufferError] = React.useState<string | null>(null)
 
   // Filter states
   const [brandFilter, setBrandFilter] = React.useState<string>('all')
@@ -83,19 +100,31 @@ export function PurchaseListModal({
 
   // Initialize quantities when results change
   React.useEffect(() => {
-    if (results?.products) {
-      const initialQuantities: Record<string, number> = {}
-      results.products.forEach((product) => {
-        initialQuantities[product.sku] = Math.ceil(product.suggestedQuantity)
-      })
-      setQuantities(initialQuantities)
-    }
+    const initialQuantities: Record<string, number> = {}
+    results.products.forEach((product) => {
+      initialQuantities[product.sku] = Math.ceil(product.suggestedQuantity)
+    })
+    setQuantities(initialQuantities)
+    setSelectedProducts(new Set(results.products.map((product) => product.sku)))
   }, [results])
+
+  React.useEffect(() => {
+    const enabled = results.config.includeDeliveryBuffer ?? false
+    const bufferDays = results.config.deliveryBufferDays ?? 0
+    setBufferEnabled(enabled)
+    setBufferDaysInput(enabled ? String(bufferDays) : '')
+    setBufferDirty(false)
+    setBufferError(null)
+  }, [results.config.includeDeliveryBuffer, results.config.deliveryBufferDays])
+
+  React.useLayoutEffect(() => {
+    if (portalContainerRef.current) {
+      setPortalContainer(portalContainerRef.current)
+    }
+  }, [])
 
   // Get unique filter options
   const filterOptions = React.useMemo(() => {
-    if (!results?.products) return { brands: [], suppliers: [], warehouses: [] }
-
     const brands = [...new Set(results.products.map((p) => p.brand))].filter(
       Boolean,
     )
@@ -105,14 +134,91 @@ export function PurchaseListModal({
     const warehouses = [
       ...new Set(results.products.map((p) => p.warehouse)),
     ].filter(Boolean)
+    const categories = [
+      ...new Set(results.products.map((p) => p.category).filter(Boolean)),
+    ]
 
-    return { brands, suppliers, warehouses }
-  }, [results?.products])
+    return { brands, suppliers, warehouses, categories }
+  }, [results.products])
+
+  const parseDeliveryBufferDays = React.useCallback((value: string): number | null => {
+    if (!value.trim()) return 0
+    const normalized = value.replace(',', '.')
+    const parsed = Number(normalized)
+    if (Number.isNaN(parsed)) {
+      return null
+    }
+    return parsed < 0 ? 0 : parsed
+  }, [])
+
+  const handleBufferToggle = (checked: boolean) => {
+    setBufferEnabled(checked)
+    setBufferDirty(true)
+    setBufferError(null)
+    if (!checked) {
+      setBufferDaysInput('')
+    } else if (!bufferDaysInput) {
+      setBufferDaysInput(configBufferDays ? String(configBufferDays) : '')
+    }
+  }
+
+  const handleBufferDaysChange = (value: string) => {
+    setBufferDaysInput(value)
+    setBufferDirty(true)
+    setBufferError(null)
+  }
+
+  const handleApplyDeliveryBuffer = async () => {
+    if (!onConfigChange) {
+      setBufferDirty(false)
+      return
+    }
+
+    const parsed = parseDeliveryBufferDays(bufferDaysInput)
+
+    if (bufferEnabled && parsed === null) {
+      setBufferError('Informe um número válido maior ou igual a zero')
+      toast({
+        variant: 'destructive',
+        title: 'Valor inválido',
+        description: 'Use apenas números para os dias adicionais de entrega.',
+      })
+      return
+    }
+
+    try {
+      const normalized = bufferEnabled ? (parsed ?? 0) : 0
+      await Promise.resolve(
+        onConfigChange({
+          includeDeliveryBuffer: bufferEnabled,
+          deliveryBufferDays: bufferEnabled ? normalized : 0,
+        }),
+      )
+      setBufferDirty(false)
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível recalcular',
+        description:
+          error instanceof Error ? error.message : 'Tente novamente em instantes.',
+      })
+    }
+  }
+
+  const parsedBufferDays = parseDeliveryBufferDays(bufferDaysInput)
+  const previewBufferDays =
+    bufferEnabled && parsedBufferDays !== null
+      ? parsedBufferDays
+      : bufferEnabled
+        ? 0
+        : configBufferDays
+  const previewEffectiveCoverage = bufferEnabled
+    ? baseCoverageDays + (parsedBufferDays !== null ? parsedBufferDays : 0)
+    : effectiveCoverageDays
+  const applyDisabled = isLoading || !bufferDirty
 
   // Filter products based on search term and filters
   const filteredProducts = React.useMemo(() => {
-    if (!results?.products) return []
-
     return results.products.filter((product) => {
       // Search filter
       const searchLower = searchTerm.toLowerCase()
@@ -131,9 +237,11 @@ export function PurchaseListModal({
       const matchesSupplier =
         supplierFilter === 'all' || product.supplier === supplierFilter
 
-      // Warehouse filter
       const matchesWarehouse =
         warehouseFilter === 'all' || product.warehouse === warehouseFilter
+
+      const matchesCategory =
+        categoryFilter === 'all' || product.category === categoryFilter
 
       // Critical stock filter
       const matchesCritical =
@@ -144,44 +252,88 @@ export function PurchaseListModal({
         matchesBrand &&
         matchesSupplier &&
         matchesWarehouse &&
+        matchesCategory &&
         matchesCritical
       )
     })
   }, [
-    results?.products,
+    results.products,
     searchTerm,
     brandFilter,
     supplierFilter,
+    categoryFilter,
     warehouseFilter,
     criticalStockOnly,
   ])
 
-  // Calculate statistics
+  // Calculate statistics using filtered dataset
   const statistics = React.useMemo(() => {
-    if (!results) return null
+    if (filteredProducts.length === 0) {
+      return {
+        totalProducts: 0,
+        totalUnits: 0,
+        totalValue: 0,
+        totalSuppliers: 0,
+        selectedValue: 0,
+      }
+    }
 
-    const uniqueSuppliers = new Set(results.products.map((p) => p.supplier))
-    const totalUnits = results.products.reduce(
-      (sum, p) => sum + (quantities[p.sku] || 0),
-      0,
-    )
-    const selectedValue = Array.from(selectedProducts).reduce((sum, sku) => {
-      const product = results.products.find((p) => p.sku === sku)
-      return (
-        sum +
-        (product?.estimatedCost || 0) *
-          ((quantities[sku] || 0) / Math.ceil(product?.suggestedQuantity || 1))
-      )
-    }, 0)
+    const uniqueSuppliers = new Set<string>()
+    let totalUnits = 0
+    let totalValue = 0
+    let selectedValue = 0
+
+    for (const product of filteredProducts) {
+      uniqueSuppliers.add(product.supplier)
+
+      const suggested = Math.max(1, Math.ceil(product.suggestedQuantity || 0))
+      const quantity = quantities[product.sku] ?? suggested
+      totalUnits += quantity
+
+      const unitCost = suggested > 0 && product.estimatedCost
+        ? product.estimatedCost / suggested
+        : 0
+      const investment = unitCost * quantity
+      totalValue += investment
+
+      if (selectedProducts.has(product.sku)) {
+        selectedValue += investment
+      }
+    }
 
     return {
-      totalProducts: results.productsNeedingOrder,
+      totalProducts: filteredProducts.length,
       totalUnits,
-      totalValue: results.totalInvestment,
+      totalValue,
       totalSuppliers: uniqueSuppliers.size,
       selectedValue,
     }
-  }, [results, quantities, selectedProducts])
+  }, [filteredProducts, quantities, selectedProducts])
+
+  const brandSelectedCount = brandFilter === 'all' ? filterOptions.brands.length : (brandFilter ? 1 : 0)
+  const supplierSelectedCount = supplierFilter === 'all' ? filterOptions.suppliers.length : (supplierFilter ? 1 : 0)
+  const categorySelectedCount = categoryFilter === 'all' ? filterOptions.categories.length : (categoryFilter ? 1 : 0)
+  const warehouseSelectedCount = warehouseFilter === 'all' ? filterOptions.warehouses.length : (warehouseFilter ? 1 : 0)
+
+  const brandTriggerLabel =
+    brandFilter === 'all' || !brandFilter
+      ? 'Marcas (' + brandSelectedCount + ')'
+      : brandFilter + ' (' + brandSelectedCount + ')'
+
+  const supplierTriggerLabel =
+    supplierFilter === 'all' || !supplierFilter
+      ? 'Fornecedores (' + supplierSelectedCount + ')'
+      : supplierFilter + ' (' + supplierSelectedCount + ')'
+
+  const categoryTriggerLabel =
+    categoryFilter === 'all' || !categoryFilter
+      ? 'Categorias (' + categorySelectedCount + ')'
+      : categoryFilter + ' (' + categorySelectedCount + ')'
+
+  const warehouseTriggerLabel =
+    warehouseFilter === 'all' || !warehouseFilter
+      ? 'Depósitos (' + warehouseSelectedCount + ')'
+      : warehouseFilter + ' (' + warehouseSelectedCount + ')'
 
   /**
    * Clear all filters
@@ -236,8 +388,6 @@ export function PurchaseListModal({
    * Export purchase list
    */
   const handleExport = (format: 'excel' | 'pdf' = 'excel') => {
-    if (!results) return
-
     if (format === 'excel') {
       const csv = convertToCSV(results)
       downloadFile(
@@ -277,99 +427,151 @@ export function PurchaseListModal({
     })
   }
 
-  if (!results) return null
-
   const allSelected =
     filteredProducts.length > 0 &&
     filteredProducts.every((p) => selectedProducts.has(p.sku))
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-        {/* Header */}
-        <div className="px-6 py-4 border-b flex-shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              {onBack && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onBack}
-                  className="h-8 px-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
-              <div>
-                <DialogTitle className="text-lg font-semibold">
-                  Necessidade de Compra
-                </DialogTitle>
-                <p className="text-sm text-muted-foreground">
-                  {results.productsNeedingOrder} produtos com necessidade de
-                  compra para {results.config.coverageDays} dias de cobertura
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleExport('excel')}
-                className="h-8"
-              >
-                <FileDown className="h-4 w-4 mr-1.5" />
-                Excel
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleExport('pdf')}
-                className="h-8"
-              >
-                <FileText className="h-4 w-4 mr-1.5" />
-                PDF
-              </Button>
+    <div ref={portalContainerRef} className="flex h-full flex-col">
+      <div className="px-6 py-4 border-b flex-shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            {onBack && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onOpenChange(false)}
-                className="h-8 w-8 p-0"
+                onClick={onBack}
+                className="h-8 px-2"
               >
-                <X className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4" />
               </Button>
+            )}
+            <div>
+              <DialogTitle className="text-lg font-semibold">
+                Necessidade de Compra
+              </DialogTitle>
+              <DialogDescription id="purchase-list-description">
+                {statistics.totalProducts} de {results.productsNeedingOrder}
+                {results.productsNeedingOrder === 1 ? ' produto' : ' produtos'} com
+                necessidade de compra para {results.config.coverageDays} dias de
+                cobertura.
+              </DialogDescription>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleExport('excel')}
+              className="h-8"
+            >
+              <FileDown className="h-4 w-4 mr-1.5" />
+              Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleExport('pdf')}
+              className="h-8"
+            >
+              <FileText className="h-4 w-4 mr-1.5" />
+              PDF
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+      </div>
 
-        {/* Filters Section */}
-        <div className="px-6 py-3 border-b flex-shrink-0 bg-gray-50">
+      <div className="px-6 py-4 border-b flex-shrink-0 bg-white">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
+            <Switch
+              checked={bufferEnabled}
+              onCheckedChange={handleBufferToggle}
+              disabled={isLoading}
+            />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-900">Incluir tempo de entrega</p>
+              <p className="text-xs text-muted-foreground">Adiciona dias extras ao horizonte para proteger o pedido.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step="1"
+              value={bufferEnabled ? bufferDaysInput : ''}
+              onChange={(event) => handleBufferDaysChange(event.target.value)}
+              placeholder="Dias extras"
+              disabled={!bufferEnabled || isLoading}
+              className="w-28 h-8"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleApplyDeliveryBuffer}
+              disabled={applyDisabled}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Atualizando...
+                </>
+              ) : (
+                'Atualizar cálculo'
+              )}
+            </Button>
+          </div>
+        </div>
+        {bufferError ? (
+          <p className="mt-2 text-xs text-red-600">{bufferError}</p>
+        ) : (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {bufferEnabled
+              ? `Novo alvo: ${Math.round(previewEffectiveCoverage)} dias (base ${baseCoverageDays}${
+                  bufferEnabled ? ` + entrega ${Math.round(previewBufferDays)}` : ''
+                }).`
+              : `Cálculo atual considera ${coverageLabel}.`}
+          </p>
+        )}
+      </div>
+
+      <div className="px-6 py-3 border-b flex-shrink-0 bg-gray-50">
+        <div className="flex items-center gap-3">
             {/* Brand Filter */}
-            <Select value={brandFilter} onValueChange={setBrandFilter}>
-              <SelectTrigger className="w-[160px] h-8">
-                <SelectValue placeholder="Marcas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  Todas ({filterOptions.brands.length})
+          <Select value={brandFilter} onValueChange={setBrandFilter}>
+            <SelectTrigger className="w-[190px] h-8">
+              {brandTriggerLabel}
+            </SelectTrigger>
+            <SelectContent container={portalContainer}>
+              <SelectItem value="all">
+                Marcas ({filterOptions.brands.length})
+              </SelectItem>
+              {filterOptions.brands.map((brand) => (
+                <SelectItem key={brand} value={brand}>
+                  {brand}
                 </SelectItem>
-                {filterOptions.brands.map((brand) => (
-                  <SelectItem key={brand} value={brand}>
-                    {brand}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              ))}
+            </SelectContent>
+          </Select>
 
             {/* Supplier Filter */}
-            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-              <SelectTrigger className="w-[180px] h-8">
-                <SelectValue placeholder="Fornecedores" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  Todos ({filterOptions.suppliers.length})
-                </SelectItem>
+          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+            <SelectTrigger className="w-[190px] h-8">
+              {supplierTriggerLabel}
+            </SelectTrigger>
+            <SelectContent container={portalContainer}>
+              <SelectItem value="all">
+                Fornecedores ({filterOptions.suppliers.length})
+              </SelectItem>
                 {filterOptions.suppliers.map((supplier) => (
                   <SelectItem key={supplier} value={supplier}>
                     {supplier}
@@ -379,24 +581,31 @@ export function PurchaseListModal({
             </Select>
 
             {/* Category Filter - placeholder for now */}
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[160px] h-8">
-                <SelectValue placeholder="Categorias" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas (6)</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Warehouse Filter */}
-            <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-              <SelectTrigger className="w-[160px] h-8">
-                <SelectValue placeholder="Depósitos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  Todos ({filterOptions.warehouses.length})
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[190px] h-8">
+              {categoryTriggerLabel}
+            </SelectTrigger>
+            <SelectContent container={portalContainer}>
+              <SelectItem value="all">
+                Categorias ({filterOptions.categories.length})
+              </SelectItem>
+              {filterOptions.categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
                 </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Warehouse Filter */}
+          <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+            <SelectTrigger className="w-[190px] h-8">
+              {warehouseTriggerLabel}
+            </SelectTrigger>
+            <SelectContent container={portalContainer}>
+              <SelectItem value="all">
+                Depósitos ({filterOptions.warehouses.length})
+              </SelectItem>
                 {filterOptions.warehouses.map((warehouse) => (
                   <SelectItem key={warehouse} value={warehouse}>
                     {warehouse}
@@ -501,7 +710,8 @@ export function PurchaseListModal({
                 <div className="text-xs text-green-600">
                   selecionados: R${' '}
                   {statistics.selectedValue.toLocaleString('pt-BR', {
-                    minimumFractionDigits: 0,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </div>
               </div>
@@ -522,7 +732,7 @@ export function PurchaseListModal({
         )}
 
         {/* Products List */}
-        <DialogMain className="flex-1 min-h-0 overflow-auto px-6 py-4 bg-gray-50/30">
+      <DialogMain className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-gray-50/30">
           <div className="space-y-3">
             {/* Product Rows */}
             {filteredProducts.map((product) => (
@@ -566,10 +776,12 @@ export function PurchaseListModal({
               </span>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Voltar
-              </Button>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              {onBack && (
+                <Button variant="outline" onClick={onBack}>
+                  Voltar
+                </Button>
+              )}
+              <Button variant="outline" onClick={onClose}>
                 Cancelar
               </Button>
               <Button
@@ -582,8 +794,7 @@ export function PurchaseListModal({
             </div>
           </div>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </div>
   )
 }
 
@@ -688,20 +899,20 @@ function ProductRow({
           <div className="flex items-center gap-2">
             <span className="text-gray-500">Necessidade Bruta:</span>
             <span className="font-bold text-gray-900 text-base">
-              {Math.ceil(product.requiredQuantity)}
+              {Math.ceil(product.grossRequirement ?? product.requiredQuantity ?? 0)}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-gray-500">Necessidade Líquida:</span>
             <span className="font-bold text-gray-900 text-base">
-              {Math.ceil(product.suggestedQuantity)}
+              {Math.ceil(product.netRequirement ?? product.suggestedQuantity ?? 0)}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-gray-400 text-xs">
-              Sugestão: {Math.ceil(product.suggestedQuantity)} un
+              Sugestão: {Math.ceil(product.netRequirement ?? product.suggestedQuantity ?? 0)} un
             </span>
           </div>
 
@@ -793,3 +1004,11 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
+
+
+
+
+
+
+
+

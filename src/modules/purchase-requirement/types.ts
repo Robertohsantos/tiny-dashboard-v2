@@ -31,6 +31,10 @@ export interface PurchaseRequirementConfig {
   // Constraints
   respectPackSize?: boolean // Whether to round to pack size multiples
 
+  // Delivery buffer configuration
+  includeDeliveryBuffer: boolean // Whether to add delivery buffer days to coverage horizon
+  deliveryBufferDays?: number // Additional days to add when buffer is enabled
+
   // Performance settings
   enableParallel: boolean // Enable parallel processing for batch
   maxConcurrency: number // Max concurrent calculations
@@ -108,6 +112,7 @@ export interface PurchaseRequirementResult {
   brand: string
   supplier: string
   warehouse: string
+  category: string
 
   // Current position
   currentStock: number
@@ -120,6 +125,8 @@ export interface PurchaseRequirementResult {
   dailyDemand: number
   currentCoverageDays: number // Current coverage without new order
   targetCoverageDays: number // Desired coverage from config
+  targetCoverageDaysBase: number // Base coverage configured before buffer
+  targetCoverageBufferDays: number // Additional delivery buffer days applied
 
   // Lead time protection
   leadTimeDays: number
@@ -129,6 +136,8 @@ export interface PurchaseRequirementResult {
   targetInventory: number // Desired inventory level
   requiredQuantity: number // Raw requirement (can be negative)
   suggestedQuantity: number // Final suggested quantity
+  grossRequirement: number // Demand over coverage horizon
+  netRequirement: number // Gross requirement minus stock & open orders
   moq?: number | null // Minimum order quantity if applicable
   packSize: number // Pack size for ordering
 
@@ -285,3 +294,6 @@ export class PurchaseRequirementCalculationError extends Error {
     this.name = 'PurchaseRequirementCalculationError'
   }
 }
+
+
+

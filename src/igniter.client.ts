@@ -37,28 +37,28 @@ export const api = createIgniterClient<AppRouterType>({
   router: () => {
     if (typeof window === 'undefined') {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const module = require('./igniter.router') as {
+      const routerModule = require('./igniter.router') as {
         AppRouter?: AppRouterType
         default?: { AppRouter?: AppRouterType } | AppRouterType | null
       }
 
-      let resolvedRouter = module.AppRouter
+      let resolvedRouter = routerModule.AppRouter
 
-      if (!resolvedRouter && module.default) {
+      if (!resolvedRouter && routerModule.default) {
         if (
-          typeof module.default === 'object' &&
-          module.default !== null &&
-          'AppRouter' in module.default
+          typeof routerModule.default === 'object' &&
+          routerModule.default !== null &&
+          'AppRouter' in routerModule.default
         ) {
-          resolvedRouter = (module.default as { AppRouter?: AppRouterType }).AppRouter
+          resolvedRouter = (routerModule.default as { AppRouter?: AppRouterType }).AppRouter
         } else if (
-          typeof module.default === 'object' &&
-          module.default !== null &&
-          'controllers' in module.default
+          typeof routerModule.default === 'object' &&
+          routerModule.default !== null &&
+          'controllers' in routerModule.default
         ) {
-          resolvedRouter = module.default as AppRouterType
+          resolvedRouter = routerModule.default as AppRouterType
         } else {
-          resolvedRouter = module.default as AppRouterType
+          resolvedRouter = routerModule.default as AppRouterType
         }
       }
 
@@ -87,3 +87,4 @@ export type ApiClient = typeof api
  * const { invalidate } = useQueryClient()
  */
 export const useQueryClient = useIgniterQueryClient<AppRouterType>
+

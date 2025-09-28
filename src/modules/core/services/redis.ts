@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import type { Redis } from 'ioredis'
 
 declare global {
@@ -28,17 +29,19 @@ if (typeof window === 'undefined') {
           },
         })
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (redis && process.env.NODE_ENV !== 'production') {
         global._redis = redis
       }
 
-      redis.on('error', (err: Error) => {
-        console.error('Redis connection error:', err.message)
-      })
+      if (redis) {
+        redis.on('error', (err: Error) => {
+          console.error('Redis connection error:', err.message)
+        })
 
-      redis.on('connect', () => {
-        console.log('✅ Redis connected successfully')
-      })
+        redis.on('connect', () => {
+          console.log('✅ Redis connected successfully')
+        })
+      }
     } catch (error) {
       console.error('Failed to initialize Redis:', error)
     }

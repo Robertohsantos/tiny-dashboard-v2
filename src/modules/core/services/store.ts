@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import redis from '@/modules/core/services/redis'
 
 export let store: any = null

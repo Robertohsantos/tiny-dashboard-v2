@@ -86,7 +86,6 @@ export const ProdutosDataTable = React.memo(function ProdutosDataTable({
 const ProdutosToolbar = React.memo(function ProdutosToolbar() {
   const { table } = useDataTable<Produto>()
   const [globalFilter, setGlobalFilter] = React.useState('')
-  const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false)
 
   // Get purchase requirement modal controls
   const { open: openPurchaseRequirementModal } = usePurchaseRequirementModal()
@@ -135,10 +134,7 @@ const ProdutosToolbar = React.memo(function ProdutosToolbar() {
 
       <div className="flex items-center space-x-2">
         {/* Dropdown de Ferramentas */}
-        <DropdownMenu
-          open={isToolsMenuOpen}
-          onOpenChange={setIsToolsMenuOpen}
-        >
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
@@ -158,13 +154,7 @@ const ProdutosToolbar = React.memo(function ProdutosToolbar() {
           >
             <DropdownMenuLabel>Ferramentas de Gestão</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault()
-                handleTransferencia()
-                setIsToolsMenuOpen(false)
-              }}
-            >
+            <DropdownMenuItem onSelect={handleTransferencia}>
               <ArrowLeftRight className="mr-2 h-4 w-4" />
               <div className="flex flex-col">
                 <span>Transferência entre Depósitos</span>
@@ -173,13 +163,7 @@ const ProdutosToolbar = React.memo(function ProdutosToolbar() {
                 </span>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault()
-                handleNecessidadeCompra()
-                setIsToolsMenuOpen(false)
-              }}
-            >
+            <DropdownMenuItem onSelect={handleNecessidadeCompra}>
               <ShoppingCart className="mr-2 h-4 w-4" />
               <div className="flex flex-col">
                 <span>Necessidade de Compra</span>
@@ -188,13 +172,7 @@ const ProdutosToolbar = React.memo(function ProdutosToolbar() {
                 </span>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault()
-                handleProdutosSemMovimentacao()
-                setIsToolsMenuOpen(false)
-              }}
-            >
+            <DropdownMenuItem onSelect={handleProdutosSemMovimentacao}>
               <BarChart3 className="mr-2 h-4 w-4" />
               <div className="flex flex-col">
                 <span>Produtos sem Movimentação</span>
@@ -227,11 +205,7 @@ const ProdutosToolbar = React.memo(function ProdutosToolbar() {
           >
             {table
               .getAllColumns()
-              .filter(
-                (column) =>
-                  typeof column.accessorFn !== 'undefined' &&
-                  column.getCanHide(),
-              )
+              .filter((column) => column.getCanHide())
               .map((column) => {
                 return (
                   <DropdownMenuCheckboxItem
@@ -242,7 +216,8 @@ const ProdutosToolbar = React.memo(function ProdutosToolbar() {
                       column.toggleVisibility(!!value)
                     }
                   >
-                    {column.id}
+                    {(column.columnDef.meta as { label?: string } | undefined)
+                      ?.label || column.id}
                   </DropdownMenuCheckboxItem>
                 )
               })}

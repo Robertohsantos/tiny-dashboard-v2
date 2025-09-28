@@ -23,6 +23,23 @@ export class PurchaseRequirementCalculator {
     this.validateConfig()
   }
 
+  private getCoverageBufferDays(): number {
+    if (!this.config.includeDeliveryBuffer) {
+      return 0
+    }
+
+    const bufferDays = this.config.deliveryBufferDays ?? 0
+    if (!Number.isFinite(bufferDays)) {
+      return 0
+    }
+
+    return Math.max(0, bufferDays)
+  }
+
+  private getTargetCoverageDays(): number {
+    return this.config.coverageDays + this.getCoverageBufferDays()
+  }
+
   /**
    * Validate configuration parameters
    */
@@ -40,6 +57,13 @@ export class PurchaseRequirementCalculator {
         'Max concurrency must be greater than 0',
       )
     }
+    if (this.config.deliveryBufferDays !== undefined && this.config.deliveryBufferDays < 0) {
+      throw new PurchaseRequirementCalculationError(
+        PurchaseRequirementError.INVALID_CONFIGURATION,
+        'Delivery buffer days cannot be negative',
+      )
+    }
+
   }
 
   /**
@@ -98,8 +122,11 @@ export class PurchaseRequirementCalculator {
     const leadTimeDays = this.config.leadTimeDays
     const packSize = Math.max(input.packSize ?? product.packSize ?? 1, 1)
 
+    const targetCoverageDays = this.getTargetCoverageDays()
+    const coverageBufferDays = this.getCoverageBufferDays()
+
     // Calculate available stock
-    const availableStock = currentStock - allocatedStock
+    const availableStock = Math.max(0, currentStock - allocatedStock)
 
     // Sum open purchase orders
     const openOrderQuantity = openPurchaseOrders.reduce(
@@ -107,7 +134,7 @@ export class PurchaseRequirementCalculator {
       0,
     )
 
-    // Calculate inventory position
+    // Calculate inventory position (on-hand + incoming)
     const inventoryPosition = availableStock + openOrderQuantity
 
     // Apply trend and seasonality adjustments to demand
@@ -115,7 +142,7 @@ export class PurchaseRequirementCalculator {
 
     // Calculate demand during lead time + coverage period
     const demandDuringLeadTime = adjustedDailyDemand * leadTimeDays
-    const demandDuringCoverage = adjustedDailyDemand * this.config.coverageDays
+    const demandDuringCoverage = adjustedDailyDemand * targetCoverageDays
 
     // Add safety stock if configured
     let safetyStock = 0
@@ -124,11 +151,13 @@ export class PurchaseRequirementCalculator {
       safetyStock = adjustedDailyDemand * safetyDays
     }
 
-    // Calculate target inventory level
-    const targetInventory =
-      demandDuringLeadTime + demandDuringCoverage + safetyStock
+    const grossRequirement = Math.max(0, demandDuringCoverage)
+    const netRequirement = Math.max(0, grossRequirement - inventoryPosition)
 
-    // Calculate required quantity (can be negative if overstock)
+    // Target inventory considers safety stock only
+    const targetInventory = grossRequirement + safetyStock
+
+    // Calculate required quantity (includes optional safety stock)
     const requiredQuantity = Math.max(0, targetInventory - inventoryPosition)
 
     // Apply pack size if configured
@@ -137,11 +166,13 @@ export class PurchaseRequirementCalculator {
       suggestedQuantity = this.calculatePackSize(requiredQuantity, packSize)
     }
 
-    // Calculate coverage metrics
-    const currentCoverageDays = availableStock / adjustedDailyDemand
+    // Calculate coverage metrics based on on-hand stock
+    const currentCoverageDays = adjustedDailyDemand > 0
+      ? availableStock / adjustedDailyDemand
+      : 0
 
-    // Check for gaps
-    const gapBeforeLeadTime = Math.max(0, demandDuringLeadTime - availableStock)
+    // Check for gaps considering inbound supply
+    const gapBeforeLeadTime = Math.max(0, demandDuringLeadTime - inventoryPosition)
     const needsExpediting = gapBeforeLeadTime > 0
 
     // Calculate dates
@@ -173,6 +204,8 @@ export class PurchaseRequirementCalculator {
       requiredQuantity,
     })
 
+    const unitCost = Number(product.costPrice)
+
     // Return result
     return {
       // Product identification
@@ -181,6 +214,7 @@ export class PurchaseRequirementCalculator {
       brand: product.brand || 'Unknown',
       supplier: product.supplier || 'Unknown',
       warehouse: product.warehouse || 'Default',
+      category: product.category || 'Sem categoria',
 
       // Current position
       currentStock,
@@ -192,7 +226,9 @@ export class PurchaseRequirementCalculator {
       // Demand metrics
       dailyDemand: adjustedDailyDemand,
       currentCoverageDays,
-      targetCoverageDays: this.config.coverageDays,
+      targetCoverageDays,
+      targetCoverageDaysBase: this.config.coverageDays,
+      targetCoverageBufferDays: coverageBufferDays,
       leadTimeDays,
       demandDuringLeadTime,
 
@@ -200,6 +236,8 @@ export class PurchaseRequirementCalculator {
       targetInventory,
       requiredQuantity,
       suggestedQuantity,
+      grossRequirement,
+      netRequirement,
       packSize,
 
       // Gap analysis
@@ -216,164 +254,16 @@ export class PurchaseRequirementCalculator {
       confidence,
 
       // Financial
-      estimatedCost: suggestedQuantity * Number(product.costPrice),
-      estimatedInvestment: suggestedQuantity * Number(product.costPrice),
+      estimatedCost: suggestedQuantity * unitCost,
+      estimatedInvestment: suggestedQuantity * unitCost,
 
       // Alerts
       alerts,
     }
   }
 
-  /**
-   * DEPRECATED: Rapid method - kept for reference but not used
-   */
-  private calculateRapid_DEPRECATED(
-    input: PurchaseRequirementInput,
-  ): PurchaseRequirementResult {
-    const {
-      product,
-      currentStock,
-      allocatedStock,
-      openPurchaseOrders,
-      dailyDemand,
-      demandStdDev,
-      trendFactor,
-      leadTimeDays,
-    } = input
 
-    // Calculate available stock
-    const availableStock = currentStock - allocatedStock
 
-    // Sum open purchase orders within relevant horizon
-    const horizonEnd = this.config.coverageDays + leadTimeDays
-    const relevantPOs = openPurchaseOrders.filter((po) => {
-      const daysUntilArrival = Math.ceil(
-        (po.eta.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-      )
-      return daysUntilArrival <= horizonEnd
-    })
-    const openOrderQuantity = relevantPOs.reduce(
-      (sum, po) => sum + po.pendingQuantity,
-      0,
-    )
-
-    // Calculate inventory position
-    const inventoryPosition = availableStock + openOrderQuantity
-
-    const packSize = Math.max(input.packSize ?? product.packSize ?? 1, 1)
-
-    // Apply trend adjustment to demand
-    const adjustedDailyDemand = dailyDemand * trendFactor
-
-    // Calculate demand during protected period (lead time + coverage)
-    const protectedPeriod = leadTimeDays + this.config.coverageDays
-    const totalDemand = adjustedDailyDemand * protectedPeriod
-
-    // Add safety stock if configured
-    let safetyStock = 0
-    if (this.config.includeStockReserve) {
-      const safetyDays = this.config.stockReserveDays || 7
-      safetyStock = adjustedDailyDemand * safetyDays
-    }
-
-    // Calculate target inventory level
-    const targetInventory = totalDemand + safetyStock
-
-    // Calculate required quantity (can be negative if overstock)
-    const requiredQuantity = Math.max(0, targetInventory - inventoryPosition)
-
-    // DEPRECATED method doesn't apply MOQ or pack size constraints
-    const suggestedQuantity = requiredQuantity
-
-    // Calculate coverage metrics
-    const currentCoverageDays = availableStock / adjustedDailyDemand
-    const demandDuringLeadTime = adjustedDailyDemand * leadTimeDays
-
-    // Check for gaps
-    const gapBeforeLeadTime = Math.max(0, demandDuringLeadTime - availableStock)
-    const needsExpediting = gapBeforeLeadTime > 0
-
-    // Calculate dates
-    const today = new Date()
-    const stockoutDate =
-      currentCoverageDays > 0
-        ? new Date(today.getTime() + currentCoverageDays * 24 * 60 * 60 * 1000)
-        : undefined
-    const suggestedOrderDate = today // Order now for rapid method
-    const expectedArrivalDate = new Date(
-      today.getTime() + leadTimeDays * 24 * 60 * 60 * 1000,
-    )
-
-    // Assess risk
-    const stockoutRisk = this.assessStockoutRisk(
-      currentCoverageDays,
-      leadTimeDays,
-    )
-
-    // Calculate confidence
-    const confidence = this.calculateConfidence(input)
-
-    // Generate alerts
-    const alerts = this.generateAlerts(input, {
-      needsExpediting,
-      currentCoverageDays,
-      leadTimeDays,
-      requiredQuantity,
-      suggestedQuantity,
-    })
-
-    return {
-      // Product identification
-      sku: product.sku,
-      name: product.name,
-      brand: product.brand,
-      supplier: product.supplier,
-      warehouse: product.warehouse,
-
-      // Current position
-      currentStock,
-      allocatedStock,
-      availableStock,
-      openOrderQuantity,
-      inventoryPosition,
-
-      // Demand and coverage
-      dailyDemand: adjustedDailyDemand,
-      currentCoverageDays,
-      targetCoverageDays: this.config.coverageDays,
-
-      // Lead time protection
-      leadTimeDays,
-      demandDuringLeadTime,
-
-      // Calculation results
-      targetInventory,
-      requiredQuantity,
-      suggestedQuantity,
-      moq: 0, // MOQ removed
-      packSize,
-
-      // Gap analysis
-      gapBeforeLeadTime,
-      needsExpediting,
-
-      // Dates
-      stockoutDate,
-      suggestedOrderDate,
-      expectedArrivalDate,
-
-      // Risk assessment
-      stockoutRisk,
-      confidence,
-
-      // Financial
-      estimatedCost: suggestedQuantity * Number(product.costPrice),
-      estimatedInvestment: suggestedQuantity * Number(product.costPrice),
-
-      // Alerts
-      alerts,
-    }
-  }
 
   /**
    * TIME-PHASED METHOD: MRP-style calculation with daily projections
@@ -395,6 +285,9 @@ export class PurchaseRequirementCalculator {
 
     // Use lead time from config
     const leadTimeDays = this.config.leadTimeDays
+    const targetCoverageDays = this.getTargetCoverageDays()
+    const coverageBufferDays = this.getCoverageBufferDays()
+
 
     // Generate time-phased projections
     const projections = this.generateProjections(input)
@@ -408,7 +301,7 @@ export class PurchaseRequirementCalculator {
       .filter(
         (p) =>
           p.dayOffset > leadTimeDays &&
-          p.dayOffset <= leadTimeDays + this.config.coverageDays,
+          p.dayOffset <= leadTimeDays + targetCoverageDays,
       )
       .reduce((min, p) => Math.min(min, p.netPosition), Infinity)
 
@@ -426,7 +319,7 @@ export class PurchaseRequirementCalculator {
     // Calculate target inventory to cover the desired period
     // This should be: demand during lead time + demand during coverage period + safety stock
     const demandDuringLeadTime = dailyDemand * leadTimeDays
-    const demandDuringCoverage = dailyDemand * this.config.coverageDays
+    const demandDuringCoverage = dailyDemand * this.getTargetCoverageDays()
     const targetInventory =
       demandDuringLeadTime + demandDuringCoverage + safetyStock
 
@@ -465,7 +358,11 @@ export class PurchaseRequirementCalculator {
 
     // Calculate other metrics (reusing values already calculated above)
     const adjustedDailyDemand = dailyDemand * trendFactor * seasonalityIndex
-    const currentCoverageDays = availableStock / adjustedDailyDemand
+    const grossRequirement = Math.max(0, adjustedDailyDemand * targetCoverageDays)
+    const netRequirement = Math.max(0, grossRequirement - inventoryPosition)
+    const currentCoverageDays = adjustedDailyDemand > 0
+      ? availableStock / adjustedDailyDemand
+      : 0
 
     // Dates
     const today = new Date()
@@ -488,6 +385,8 @@ export class PurchaseRequirementCalculator {
       leadTimeDays,
       requiredQuantity,
       suggestedQuantity,
+      grossRequirement,
+      netRequirement,
     })
 
     return {
@@ -508,15 +407,16 @@ export class PurchaseRequirementCalculator {
       // Demand and coverage
       dailyDemand: adjustedDailyDemand,
       currentCoverageDays,
-      targetCoverageDays: this.config.coverageDays,
+      targetCoverageDays,
+      targetCoverageDaysBase: this.config.coverageDays,
+      targetCoverageBufferDays: coverageBufferDays,
 
       // Lead time protection
       leadTimeDays,
       demandDuringLeadTime,
 
       // Calculation results
-      targetInventory:
-        safetyStock + adjustedDailyDemand * this.config.coverageDays,
+      targetInventory,
       requiredQuantity,
       suggestedQuantity,
       moq: 0, // MOQ removed
@@ -551,7 +451,7 @@ export class PurchaseRequirementCalculator {
     input: PurchaseRequirementInput,
   ): TimePhaseProjection[] {
     const projections: TimePhaseProjection[] = []
-    const horizonDays = this.config.leadTimeDays + this.config.coverageDays
+    const horizonDays = this.config.leadTimeDays + this.getTargetCoverageDays()
 
     let projectedStock = input.currentStock - input.allocatedStock
     let cumDemand = 0
@@ -719,7 +619,7 @@ export class PurchaseRequirementCalculator {
     // Overstock situation
     if (
       results.requiredQuantity === 0 &&
-      results.currentCoverageDays > this.config.coverageDays * 2
+      results.currentCoverageDays > this.getTargetCoverageDays() * 2
     ) {
       alerts.push({
         type: 'INFO',
@@ -732,3 +632,4 @@ export class PurchaseRequirementCalculator {
     return alerts
   }
 }
+

@@ -1,19 +1,13 @@
 import { isServer } from '@igniter-js/core'
+import { cache as reactCache } from 'react'
 
-// Cache function that works in both Node and React environments
+// Cache function that works em ambientes Node e React
 const createCache = () => {
-  // Only use React cache in React Server Components environment
-  if (typeof window === 'undefined') {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { cache } = require('react')
-      return cache
-    } catch {
-      // Fall back to identity function if React cache not available
-      return <T extends (...args: any[]) => any>(fn: T) => fn
-    }
+  if (typeof window === 'undefined' && typeof reactCache === 'function') {
+    return reactCache
   }
-  // Identity function for client-side and Node CLI
+
+  // Identity function para client-side, testes e CLIs
   return <T extends (...args: any[]) => any>(fn: T) => fn
 }
 

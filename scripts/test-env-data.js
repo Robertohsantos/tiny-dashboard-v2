@@ -1,20 +1,11 @@
 #!/usr/bin/env node
 
-/**
- * Script para testar a separação de dados entre dev e prod
- * Uso: node scripts/test-env-data.js
- */
-
-require('ts-node/register/transpile-only')
-
-console.log('=== Teste de Separação Dev/Prod ===
-')
+/* eslint-disable no-console */
 
 const fetchersPath = '../src/modules/dashboard/data/data-fetchers.ts'
 
-function loadFetchers() {
-  delete require.cache[require.resolve(fetchersPath)]
-  return require(fetchersPath)
+async function loadFetchers() {
+  return import(fetchersPath)
 }
 
 async function run() {
@@ -23,7 +14,7 @@ async function run() {
   console.log('1. Testando ambiente DEVELOPMENT:')
   console.log('   NODE_ENV =', process.env.NODE_ENV)
 
-  const devModule = loadFetchers()
+  const devModule = await loadFetchers()
   const [tableData, chartData, metrics] = await Promise.all([
     devModule.getDashboardTableData(),
     devModule.getChartData(),
@@ -45,12 +36,11 @@ async function run() {
       : '❌ Valores zerados',
   )
 
-  console.log('
-2. Testando ambiente PRODUCTION:')
+  console.log('\n2. Testando ambiente PRODUCTION:')
   process.env.NODE_ENV = 'production'
   console.log('   NODE_ENV =', process.env.NODE_ENV)
 
-  const prodModule = loadFetchers()
+  const prodModule = await loadFetchers()
   const [prodTable, prodChart, prodMetrics] = await Promise.all([
     prodModule.getDashboardTableData(),
     prodModule.getChartData(),
@@ -76,19 +66,19 @@ async function run() {
       : '❌ Valores mockados (não deveria!)',
   )
 
-  console.log('
-=== Resultado ===')
+  console.log('\n=== Resultado ===')
   console.log('✅ Separação Dev/Prod funcionando corretamente!')
   console.log('- Em DEV: Dados mockados são carregados')
   console.log('- Em PROD: Dados mockados NÃO são carregados')
-  console.log(
-    '- Próximos passos: integrar dados reais removendo mocks quando as fontes oficiais estiverem disponíveis.
-',
-  )
+  console.log('- Próximos passos: integrar dados reais removendo mocks quando as fontes oficiais estiverem disponíveis.\n')
 }
 
-run().catch((error) => {
-  console.error('
-❌ Erro ao executar o teste:', error)
+async function bootstrap() {
+  await import('ts-node/register/transpile-only')
+  await run()
+}
+
+bootstrap().catch((error) => {
+  console.error('\n❌ Erro ao executar o teste:', error)
   process.exit(1)
 })

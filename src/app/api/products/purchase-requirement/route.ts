@@ -19,6 +19,8 @@ const CalculateRequestSchema = z.object({
   includeStockReserve: z.boolean().default(true),
   stockReserveDays: z.number().min(0).max(90).optional(),
   respectPackSize: z.boolean().default(true),
+  includeDeliveryBuffer: z.boolean().default(false),
+  deliveryBufferDays: z.number().min(0).max(365).optional(),
   showOnlyNeeded: z.boolean().default(true),
   consolidateBySupplier: z.boolean().default(false),
   filters: z
@@ -55,6 +57,18 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
 
+    const includeDeliveryBuffer = searchParams.get('includeDeliveryBuffer') === 'true'
+    const deliveryBufferDaysParam = searchParams.get('deliveryBufferDays')
+    const parsedDeliveryBufferDays = (
+      deliveryBufferDaysParam !== null && deliveryBufferDaysParam !== ''
+        ? Number(deliveryBufferDaysParam)
+        : undefined
+    )
+    const deliveryBufferDays =
+      typeof parsedDeliveryBufferDays === 'number' && !Number.isNaN(parsedDeliveryBufferDays)
+        ? Math.max(0, parsedDeliveryBufferDays)
+        : 0
+
     // Single product calculation
     const productId = searchParams.get('productId')
     if (productId) {
@@ -67,6 +81,8 @@ export async function GET(request: NextRequest) {
         includeStockReserve:
           searchParams.get('includeStockReserve') !== 'false',
         respectPackSize: searchParams.get('respectPackSize') !== 'false',
+        includeDeliveryBuffer,
+        deliveryBufferDays: includeDeliveryBuffer ? deliveryBufferDays : 0,
       }
 
       const result = await purchaseRequirementService.calculateRequirement(
@@ -112,6 +128,8 @@ export async function GET(request: NextRequest) {
         | 'P90',
       includeStockReserve: searchParams.get('includeStockReserve') !== 'false',
       respectPackSize: searchParams.get('respectPackSize') !== 'false',
+      includeDeliveryBuffer,
+      deliveryBufferDays: includeDeliveryBuffer ? deliveryBufferDays : 0,
       showOnlyNeeded: searchParams.get('showOnlyNeeded') !== 'false',
       consolidateBySupplier:
         searchParams.get('consolidateBySupplier') === 'true',
@@ -158,6 +176,10 @@ export async function POST(request: NextRequest) {
       includeStockReserve: validatedData.includeStockReserve,
       stockReserveDays: validatedData.stockReserveDays,
       respectPackSize: validatedData.respectPackSize,
+      includeDeliveryBuffer: validatedData.includeDeliveryBuffer,
+      deliveryBufferDays: validatedData.includeDeliveryBuffer
+        ? validatedData.deliveryBufferDays ?? 0
+        : 0,
       showOnlyNeeded: validatedData.showOnlyNeeded,
       consolidateBySupplier: validatedData.consolidateBySupplier,
       filters: validatedData.filters || {},
