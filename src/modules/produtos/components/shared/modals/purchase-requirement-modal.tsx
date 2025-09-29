@@ -29,6 +29,7 @@ import type { Produto } from '@/modules/produtos/types/produtos.types'
 import { PurchaseListView } from './purchase-list-view'
 import { ENV_CONFIG } from '@/modules/core/config/environment'
 import { cn } from '@/modules/ui'
+import { usePurchaseRequirementConfig } from '@/modules/produtos/contexts/purchase-requirement-context'
 
 interface PurchaseRequirementModalProps {
   /** Whether the modal is open */
@@ -37,12 +38,6 @@ interface PurchaseRequirementModalProps {
   onOpenChange: (open: boolean) => void
   /** Organization ID for the calculation */
   organizationId?: string
-  /** Initial filters from the products page */
-  initialFilters?: {
-    deposito?: string[]
-    marca?: string[]
-    fornecedor?: string[]
-  }
   /** Products available based on current filters */
   products: Produto[]
 }
@@ -55,13 +50,15 @@ export function PurchaseRequirementModal({
   open,
   onOpenChange,
   organizationId,
-  initialFilters,
   products,
 }: PurchaseRequirementModalProps) {
   const { toast } = useToast()
+  const { config: savedConfig, saveConfig } = usePurchaseRequirementConfig()
   const [results, setResults] = React.useState<PurchaseBatchResult | null>(null)
   const [view, setView] = React.useState<'form' | 'list'>('form')
-  const [activeConfig, setActiveConfig] = React.useState<Partial<PurchaseRequirementConfig> | null>(null)
+  const [activeConfig, setActiveConfig] = React.useState<
+    Partial<PurchaseRequirementConfig> | null
+  >(savedConfig ?? null)
   const hasOrganization = Boolean(organizationId)
 
   // Purchase requirement hook
@@ -81,6 +78,32 @@ export function PurchaseRequirementModal({
       document.body.style.pointerEvents = ''
     }
   }, [open])
+
+  React.useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    if (savedConfig) {
+      setActiveConfig(savedConfig)
+    }
+  }, [open, savedConfig])
+
+  const initialFormFilters = React.useMemo(() => {
+    const filters = (activeConfig ?? savedConfig)?.filters
+    if (!filters) {
+      return undefined
+    }
+
+    const clone = (values?: string[]) =>
+      Array.isArray(values) && values.length > 0 ? [...values] : undefined
+
+    return {
+      deposito: clone(filters.depositos),
+      marca: clone(filters.marcas),
+      fornecedor: clone(filters.fornecedores),
+    }
+  }, [activeConfig, savedConfig])
 
   /**
    * Handle form submission
@@ -104,15 +127,9 @@ export function PurchaseRequirementModal({
       }
 
       try {
-        const convertedInitialFilters = {
-          depositos: initialFilters?.deposito?.filter(Boolean),
-          marcas: initialFilters?.marca?.filter(Boolean),
-          fornecedores: initialFilters?.fornecedor?.filter(Boolean),
-        }
-
         const mergedFilters = {
-          ...convertedInitialFilters,
-          ...config.filters,
+          ...(activeConfig?.filters ?? {}),
+          ...(config.filters ?? {}),
         }
 
         const productSkus = products
@@ -124,9 +141,12 @@ export function PurchaseRequirementModal({
         }
 
         const sanitizedFilters = Object.fromEntries(
-          Object.entries(mergedFilters).filter(([, value]) =>
-            value !== undefined && value !== null,
-          ),
+          Object.entries(mergedFilters).filter(([, value]) => {
+            if (Array.isArray(value)) {
+              return value.length > 0
+            }
+            return value !== undefined && value !== null
+          }),
         ) as PurchaseRequirementConfig['filters']
 
         const includeDeliveryBuffer =
@@ -137,17 +157,27 @@ export function PurchaseRequirementModal({
         const rawDeliveryBufferDays =
           typeof config.deliveryBufferDays === 'number'
             ? config.deliveryBufferDays
-            : activeConfig?.deliveryBufferDays ?? 0
+          : activeConfig?.deliveryBufferDays ?? 0
 
         const normalizedDeliveryBufferDays = includeDeliveryBuffer
           ? Math.max(0, rawDeliveryBufferDays)
           : 0
 
+        const requestFilters: PurchaseRequirementConfig['filters'] = {
+          ...sanitizedFilters,
+        }
+
+        const persistedFilters: PurchaseRequirementConfig['filters'] = {
+          ...requestFilters,
+        }
+
+        delete persistedFilters.skus
+
         const requestConfig: Partial<PurchaseRequirementConfig> = {
           ...config,
           includeDeliveryBuffer,
           deliveryBufferDays: normalizedDeliveryBufferDays,
-          filters: sanitizedFilters,
+          filters: requestFilters,
         }
 
         const result = await calculateRequirement({
@@ -156,7 +186,13 @@ export function PurchaseRequirementModal({
         })
 
         if (result) {
+          const persistedConfig: Partial<PurchaseRequirementConfig> = {
+            ...requestConfig,
+            filters: persistedFilters,
+          }
+
           setActiveConfig(requestConfig)
+          saveConfig(persistedConfig)
           setResults(result)
           setView('list')
 
@@ -176,11 +212,11 @@ export function PurchaseRequirementModal({
     },
     [
       organizationId,
-      initialFilters,
       products,
       calculateRequirement,
       toast,
       activeConfig,
+      saveConfig,
     ],
   )
 
@@ -276,7 +312,7 @@ export function PurchaseRequirementModal({
                 <PurchaseRequirementForm
                   onSubmit={handleCalculate}
                   isLoading={isCalculating}
-                  initialFilters={initialFilters}
+                  initialFilters={initialFormFilters}
                   products={products}
                 />
               </div>
@@ -317,7 +353,7 @@ export function PurchaseRequirementModal({
               onBack={() => setView('form')}
               onConfigChange={handleConfigUpdate}
               isLoading={isCalculating}
-              organizationId={organizationId}
+              catalogProducts={products}
             />
           )
         )}
@@ -325,5 +361,3 @@ export function PurchaseRequirementModal({
     </Dialog>
   )
 }
-
-

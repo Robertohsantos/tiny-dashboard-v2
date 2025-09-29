@@ -671,10 +671,14 @@ export function generateMockProdutos(
     return []
   }
 
+  const normalizedCount = Number.isFinite(count)
+    ? Math.max(0, Math.floor(count))
+    : DEFAULT_DATASET_SIZE
+
   const { seed, useCache } = resolveSeed(customSeed)
 
   const cache = MockDataCache.getInstance()
-  const datasetSize = Math.max(count, DEFAULT_DATASET_SIZE)
+  const datasetSize = Math.max(normalizedCount, DEFAULT_DATASET_SIZE)
 
   let produtosBase = useCache ? cache.getProducts(seed) : null
 
@@ -685,7 +689,9 @@ export function generateMockProdutos(
     }
   }
 
-  let filteredProdutos = produtosBase.slice(0, datasetSize)
+  const workingSet = produtosBase.slice(0, datasetSize)
+  let filteredProdutos =
+    normalizedCount > 0 ? workingSet.slice(0, normalizedCount) : []
 
   if (filter?.categoria) {
     filteredProdutos = filteredProdutos.filter(
@@ -788,7 +794,7 @@ export function generateMockProdutos(
     )
   }
 
-  return filteredProdutos.slice(0, count).map((produto) => ({
+  return filteredProdutos.slice(0, normalizedCount).map((produto) => ({
     ...produto,
     ultimaAtualizacao: new Date(produto.ultimaAtualizacao),
   }))

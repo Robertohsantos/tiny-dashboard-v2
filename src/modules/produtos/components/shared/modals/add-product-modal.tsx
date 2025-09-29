@@ -18,11 +18,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Search, Package, X } from 'lucide-react'
+import { Search, Package, X } from 'lucide-react'
 import { useToast } from '@/modules/ui/hooks/use-toast'
 import { cn } from '@/modules/ui'
 import type { PurchaseRequirementResult } from '@/modules/purchase-requirement/types'
-import { produtosService } from '@/modules/produtos/services/produtos.service'
 import type { Produto } from '@/modules/produtos/types/produtos.types'
 
 interface AddProductModalProps {
@@ -34,8 +33,8 @@ interface AddProductModalProps {
   existingProducts: PurchaseRequirementResult[]
   /** Callback when products are added */
   onAddProducts: (products: PurchaseRequirementResult[]) => void
-  /** Organization ID for data fetching */
-  organizationId?: string
+  /** Full catalog of products available in the modal context */
+  availableProducts?: Produto[]
 }
 
 interface SelectedProduct {
@@ -102,7 +101,7 @@ export function AddProductModal({
   onOpenChange,
   existingProducts,
   onAddProducts,
-  organizationId,
+  availableProducts = [],
 }: AddProductModalProps) {
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = React.useState('')
@@ -141,55 +140,51 @@ export function AddProductModal({
   /**
    * Search products based on query
    */
-  const searchProducts = React.useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setSearchResults([])
-      return
-    }
+  const searchProducts = React.useCallback(
+    (query: string) => {
+      if (!query || query.length < 2) {
+        setSearchResults([])
+        return
+      }
 
-    setLoading(true)
-    try {
-      // Get all products and filter by search term
-      const allProducts = await produtosService.getProdutos(
-        organizationId ? { organizacaoId: organizationId } : undefined,
-        500,
-      )
-      
-      const searchLower = query.toLowerCase()
-      const filtered = allProducts
-        .filter((produto) => {
-          const normalizedSku = normalizeSku(produto.sku)
-          return (
-            !existingSkus.has(normalizedSku) &&
-            !selectedSkus.has(normalizedSku)
-          )
+      setLoading(true)
+      try {
+        const searchLower = query.toLowerCase()
+        const filtered = availableProducts
+          .filter((produto) => {
+            const normalizedSku = normalizeSku(produto.sku)
+            return (
+              !existingSkus.has(normalizedSku) &&
+              !selectedSkus.has(normalizedSku)
+            )
+          })
+          .filter((produto) => {
+            const normalizedNome = produto.nome.toLowerCase()
+            const normalizedMarca = produto.marca.toLowerCase()
+            const normalizedFornecedor = produto.fornecedor.toLowerCase()
+            return (
+              produto.sku.toLowerCase().includes(searchLower) ||
+              normalizedNome.includes(searchLower) ||
+              normalizedMarca.includes(searchLower) ||
+              normalizedFornecedor.includes(searchLower)
+            )
+          })
+          .slice(0, 30)
+
+        setSearchResults(filtered)
+      } catch (error) {
+        console.error('Error filtering products:', error)
+        toast({
+          variant: 'destructive',
+          title: 'Erro na busca',
+          description: 'Não foi possível buscar produtos.',
         })
-        .filter((produto) => 
-          produto.sku.toLowerCase().includes(searchLower) ||
-          produto.nome.toLowerCase().includes(searchLower) ||
-          produto.marca.toLowerCase().includes(searchLower) ||
-          produto.fornecedor.toLowerCase().includes(searchLower)
-        )
-        .slice(0, 30) // Limit to 30 results
-      
-      setSearchResults(filtered)
-    } catch (error) {
-      console.error('Error searching products:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Erro na busca',
-        description: 'Não foi possível buscar produtos.',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }, [
-    existingSkus,
-    normalizeSku,
-    organizationId,
-    selectedSkus,
-    toast,
-  ])
+      } finally {
+        setLoading(false)
+      }
+    },
+    [availableProducts, existingSkus, normalizeSku, selectedSkus, toast],
+  )
 
   /**
    * Handle search input change with debounce

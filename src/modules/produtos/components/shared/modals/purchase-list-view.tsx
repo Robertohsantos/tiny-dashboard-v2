@@ -46,6 +46,7 @@ import type {
 } from '@/modules/purchase-requirement/types'
 import { useToast } from '@/modules/ui/hooks/use-toast'
 import { AddProductModal } from './add-product-modal'
+import type { Produto } from '@/modules/produtos/types/produtos.types'
 
 interface PurchaseListViewProps {
   /** Calculation results to display */
@@ -58,8 +59,8 @@ interface PurchaseListViewProps {
   onConfigChange?: (config: Partial<PurchaseRequirementConfig>) => void | Promise<void>
   /** Whether a recalculation is in progress */
   isLoading?: boolean
-  /** Organization ID for data fetching */
-  organizationId?: string
+  /** Catalog products available for manual additions */
+  catalogProducts?: Produto[]
 }
 
 /**
@@ -71,7 +72,7 @@ export function PurchaseListView({
   onBack,
   onConfigChange,
   isLoading = false,
-  organizationId,
+  catalogProducts = [],
 }: PurchaseListViewProps) {
   const { toast } = useToast()
   const portalContainerRef = React.useRef<HTMLDivElement | null>(null)
@@ -880,7 +881,7 @@ export function PurchaseListView({
           onOpenChange={setAddProductModalOpen}
           existingProducts={results.products}
           onAddProducts={handleAddProducts}
-          organizationId={organizationId}
+          availableProducts={catalogProducts}
         />
     </div>
   )
@@ -1092,6 +1093,4 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
-
-
 

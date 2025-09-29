@@ -119,7 +119,12 @@ function ProdutosContentInner({ initialData }: ProdutosContentProps) {
     })
 
   const productsForModal = React.useMemo(() => {
-    return data?.produtos ?? initialData?.produtos ?? []
+    // Modal operates on the complete dataset, independent of table filters
+    if (initialData?.produtos && initialData.produtos.length > 0) {
+      return initialData.produtos
+    }
+
+    return data?.produtos ?? []
   }, [data?.produtos, initialData?.produtos])
 
   // Handle refresh - already memoized by React Query
@@ -271,6 +276,7 @@ function ProdutosContentInner({ initialData }: ProdutosContentProps) {
             <ProdutosDataTable
               data={data.produtos || []}
               isLoading={isFetching}
+              totalProducts={totalProducts}
             />
           </div>
         </DashboardErrorBoundary>
@@ -285,11 +291,6 @@ function ProdutosContentInner({ initialData }: ProdutosContentProps) {
         open={isOpen}
         onOpenChange={close}
         organizationId={organizationId}
-        initialFilters={{
-          deposito: filters.deposito,
-          marca: filters.marca,
-          fornecedor: filters.fornecedor,
-        }}
         products={productsForModal}
       />
     </div>
