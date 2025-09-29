@@ -22,6 +22,7 @@ import {
   getFornecedorOptions,
 } from '@/modules/produtos/constants/produtos.constants'
 import { useDefaultCoverageDays } from '@/modules/produtos/hooks/use-default-coverage-days'
+import { useDefaultDeliveryBuffer } from '@/modules/produtos/hooks/use-default-delivery-buffer'
 import { DefaultCoverageDaysModal } from './default-coverage-days-modal'
 import type { Produto } from '@/modules/produtos/types/produtos.types'
 import { normalizeMarca } from '@/modules/produtos/utils/produtos-transforms.utils'
@@ -35,6 +36,8 @@ const formSchema = z.object({
   leadTimeDays: z.number().min(0).max(90),
   includeStockReserve: z.boolean(),
   stockReserveDays: z.number().min(0).max(90).optional(),
+  includeDeliveryBuffer: z.boolean(),
+  deliveryBufferDays: z.number().min(0).max(90).optional(),
   filters: z.object({
     marcas: z.array(z.string()).optional(),
     fornecedores: z.array(z.string()).optional(),
@@ -98,6 +101,14 @@ export function PurchaseRequirementForm({
 
   // Get default coverage days from hook
   const { defaultDays, setDefaultDays } = useDefaultCoverageDays()
+  
+  // Get default delivery buffer from hook
+  const {
+    defaultDeliveryEnabled,
+    defaultDeliveryDays,
+    setDeliveryDefaults,
+    isLoading: isDefaultDeliveryLoading,
+  } = useDefaultDeliveryBuffer()
 
   // State for config modal
   const [configModalOpen, setConfigModalOpen] = React.useState(false)
@@ -175,6 +186,8 @@ export function PurchaseRequirementForm({
       leadTimeDays: 7,
       includeStockReserve: true,
       stockReserveDays: 7,
+      includeDeliveryBuffer: defaultDeliveryEnabled,
+      deliveryBufferDays: defaultDeliveryDays,
       filters: {
         marcas: defaultMarcaSelection,
         fornecedores: defaultFornecedorSelection,
@@ -189,6 +202,10 @@ export function PurchaseRequirementForm({
   const selectedMarcas = form.watch('filters.marcas') || []
   const selectedFornecedores = form.watch('filters.fornecedores') || []
   const selectedCategorias = form.watch('filters.categorias') || []
+  const includeStockReserve = form.watch('includeStockReserve')
+  const includeDeliveryBuffer = form.watch('includeDeliveryBuffer')
+  const coverageDays = form.watch('coverageDays')
+  const deliveryBufferDays = form.watch('deliveryBufferDays') || 0
 
   const productsFilteredByCategoria = React.useMemo(() => {
     if (selectedCategorias.length === 0) {
@@ -328,6 +345,27 @@ export function PurchaseRequirementForm({
     form.setValue('coverageDays', defaultDays)
   }, [defaultDays, form])
 
+  React.useEffect(() => {
+    if (isDefaultDeliveryLoading) return
+
+    if (!form.formState.dirtyFields?.includeDeliveryBuffer) {
+      form.setValue('includeDeliveryBuffer', defaultDeliveryEnabled, {
+        shouldDirty: false,
+      })
+    }
+
+    if (!form.formState.dirtyFields?.deliveryBufferDays) {
+      form.setValue('deliveryBufferDays', defaultDeliveryDays, {
+        shouldDirty: false,
+      })
+    }
+  }, [
+    defaultDeliveryEnabled,
+    defaultDeliveryDays,
+    isDefaultDeliveryLoading,
+    form,
+  ])
+
   /**
    * Handle form submission
    */
@@ -354,10 +392,6 @@ export function PurchaseRequirementForm({
         >
           {/* Depósitos Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Depósitos{' '}
-              {selectedDepositos.length > 0 && `(${selectedDepositos.length})`}
-            </label>
             <FormField
               control={form.control}
               name="filters.depositos"
@@ -367,7 +401,10 @@ export function PurchaseRequirementForm({
                     options={depositoOptions}
                     value={field.value || []}
                     onValueChange={field.onChange}
-                    placeholder="Selecione os depósitos"
+                    label="Depósitos"
+                    showLabel={false}
+                    showAvailableCount
+                    placeholder={`Depósitos (${depositoOptions.length})`}
                     disabled={isLoading}
                   />
                   <p className="text-sm text-muted-foreground">
@@ -442,6 +479,61 @@ export function PurchaseRequirementForm({
             )}
           />
 
+          {/* Tempo de Entrega Section */}
+          <div className="space-y-3">
+            <FormField
+              control={form.control}
+              name="includeDeliveryBuffer"
+              render={({ field }) => (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includeDeliveryBuffer"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={isLoading}
+                  />
+                  <label
+                    htmlFor="includeDeliveryBuffer"
+                    className="text-sm font-normal cursor-pointer select-none"
+                  >
+                    Incluir tempo de entrega adicional{' '}
+                    <span className="text-muted-foreground">(prazo de entrega do fornecedor)</span>
+                  </label>
+                </div>
+              )}
+            />
+            
+            {includeDeliveryBuffer && (
+              <FormField
+                control={form.control}
+                name="deliveryBufferDays"
+                render={({ field }) => (
+                  <div className="ml-6 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        disabled={isLoading}
+                        min={0}
+                        max={90}
+                        className="w-20 h-8 text-sm"
+                        placeholder="0"
+                      />
+                      <span className="text-sm text-muted-foreground">dias extras</span>
+                    </div>
+                    {coverageDays && deliveryBufferDays > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Cobertura efetiva: {coverageDays + deliveryBufferDays} dias ({coverageDays} base + {deliveryBufferDays} entrega)
+                      </p>
+                    )}
+                    <FormMessage />
+                  </div>
+                )}
+              />
+            )}
+          </div>
+
           {/* Filtros (opcional) Section */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-muted-foreground">
@@ -449,79 +541,68 @@ export function PurchaseRequirementForm({
             </h3>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Marcas{' '}
-                  {selectedMarcas.length > 0 && `(${selectedMarcas.length})`}
-                </label>
-                <FormField
-                  control={form.control}
-                  name="filters.marcas"
-                  render={({ field }) => (
-                    <>
-                      <MultiSelect
-                        options={marcaOptions}
-                        value={field.value || []}
-                        onValueChange={field.onChange}
-                        placeholder="Todas"
-                        disabled={isLoading}
-                        size="sm"
-                      />
-                      <FormMessage />
-                    </>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="filters.marcas"
+                render={({ field }) => (
+                  <>
+                    <MultiSelect
+                      options={marcaOptions}
+                      value={field.value || []}
+                      onValueChange={field.onChange}
+                      label="Marcas"
+                      showLabel={false}
+                      showAvailableCount
+                      placeholder={`Marcas (${marcaOptions.length})`}
+                      disabled={isLoading}
+                      size="sm"
+                    />
+                    <FormMessage />
+                  </>
+                )}
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Fornecedores{' '}
-                  {selectedFornecedores.length > 0 &&
-                    `(${selectedFornecedores.length})`}
-                </label>
-                <FormField
-                  control={form.control}
-                  name="filters.fornecedores"
-                  render={({ field }) => (
-                    <>
-                      <MultiSelect
-                        options={fornecedorOptions}
-                        value={field.value || []}
-                        onValueChange={field.onChange}
-                        placeholder="Todos"
-                        disabled={isLoading}
-                        size="sm"
-                      />
-                      <FormMessage />
-                    </>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="filters.fornecedores"
+                render={({ field }) => (
+                  <>
+                    <MultiSelect
+                      options={fornecedorOptions}
+                      value={field.value || []}
+                      onValueChange={field.onChange}
+                      label="Fornecedores"
+                      showLabel={false}
+                      showAvailableCount
+                      placeholder={`Fornecedores (${fornecedorOptions.length})`}
+                      disabled={isLoading}
+                      size="sm"
+                    />
+                    <FormMessage />
+                  </>
+                )}
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Categorias{' '}
-                  {selectedCategorias.length > 0 &&
-                    `(${selectedCategorias.length})`}
-                </label>
-                <FormField
-                  control={form.control}
-                  name="filters.categorias"
-                  render={({ field }) => (
-                    <>
-                      <MultiSelect
-                        options={categoriaOptions}
-                        value={field.value || []}
-                        onValueChange={field.onChange}
-                        placeholder="Todas"
-                        disabled={isLoading}
-                        size="sm"
-                      />
-                      <FormMessage />
-                    </>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="filters.categorias"
+                render={({ field }) => (
+                  <>
+                    <MultiSelect
+                      options={categoriaOptions}
+                      value={field.value || []}
+                      onValueChange={field.onChange}
+                      label="Categorias"
+                      showLabel={false}
+                      showAvailableCount
+                      placeholder={`Categorias (${categoriaOptions.length})`}
+                      disabled={isLoading}
+                      size="sm"
+                    />
+                    <FormMessage />
+                  </>
+                )}
+              />
             </div>
           </div>
 
@@ -545,10 +626,18 @@ export function PurchaseRequirementForm({
         open={configModalOpen}
         onOpenChange={setConfigModalOpen}
         currentDefault={defaultDays}
-        onSave={(days) => {
+        currentDeliveryEnabled={defaultDeliveryEnabled}
+        currentDeliveryDays={defaultDeliveryDays}
+        onSave={(days, deliveryEnabled, deliveryDays) => {
+          // Save coverage days
           setDefaultDays(days)
-          // Update form value to reflect new default
           form.setValue('coverageDays', days)
+          
+          // Save delivery buffer settings
+          setDeliveryDefaults(deliveryEnabled, deliveryDays)
+          form.setValue('includeDeliveryBuffer', deliveryEnabled)
+          form.setValue('deliveryBufferDays', deliveryDays)
+          
           setConfigModalOpen(false)
         }}
       />

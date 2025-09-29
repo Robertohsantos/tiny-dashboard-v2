@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   AlertTriangle,
   Loader2,
+  Clock,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -32,6 +33,11 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { cn } from '@/modules/ui'
 import type {
   PurchaseBatchResult,
@@ -39,6 +45,7 @@ import type {
   PurchaseRequirementConfig,
 } from '@/modules/purchase-requirement/types'
 import { useToast } from '@/modules/ui/hooks/use-toast'
+import { AddProductModal } from './add-product-modal'
 
 interface PurchaseListViewProps {
   /** Calculation results to display */
@@ -51,6 +58,8 @@ interface PurchaseListViewProps {
   onConfigChange?: (config: Partial<PurchaseRequirementConfig>) => void | Promise<void>
   /** Whether a recalculation is in progress */
   isLoading?: boolean
+  /** Organization ID for data fetching */
+  organizationId?: string
 }
 
 /**
@@ -62,6 +71,7 @@ export function PurchaseListView({
   onBack,
   onConfigChange,
   isLoading = false,
+  organizationId,
 }: PurchaseListViewProps) {
   const { toast } = useToast()
   const portalContainerRef = React.useRef<HTMLDivElement | null>(null)
@@ -88,7 +98,6 @@ export function PurchaseListView({
   const [bufferDaysInput, setBufferDaysInput] = React.useState(
     configBufferEnabled ? String(configBufferDays) : ''
   )
-  const [bufferDirty, setBufferDirty] = React.useState(false)
   const [bufferError, setBufferError] = React.useState<string | null>(null)
 
   // Filter states
@@ -97,6 +106,7 @@ export function PurchaseListView({
   const [categoryFilter, setCategoryFilter] = React.useState<string>('all')
   const [warehouseFilter, setWarehouseFilter] = React.useState<string>('all')
   const [criticalStockOnly, setCriticalStockOnly] = React.useState(false)
+  const [addProductModalOpen, setAddProductModalOpen] = React.useState(false)
 
   // Initialize quantities when results change
   React.useEffect(() => {
@@ -113,7 +123,6 @@ export function PurchaseListView({
     const bufferDays = results.config.deliveryBufferDays ?? 0
     setBufferEnabled(enabled)
     setBufferDaysInput(enabled ? String(bufferDays) : '')
-    setBufferDirty(false)
     setBufferError(null)
   }, [results.config.includeDeliveryBuffer, results.config.deliveryBufferDays])
 
@@ -151,50 +160,61 @@ export function PurchaseListView({
     return parsed < 0 ? 0 : parsed
   }, [])
 
+  // Debounce timer ref
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null)
+  // Input ref for focus control
+  const bufferInputRef = React.useRef<HTMLInputElement>(null)
+
   const handleBufferToggle = (checked: boolean) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
     setBufferEnabled(checked)
-    setBufferDirty(true)
     setBufferError(null)
     if (!checked) {
       setBufferDaysInput('')
-    } else if (!bufferDaysInput) {
-      setBufferDaysInput(configBufferDays ? String(configBufferDays) : '')
+      // Apply immediately when disabling
+      applyBufferChanges(false, 0)
+    } else {
+      const nextInputValue = bufferDaysInput || (configBufferDays ? String(configBufferDays) : '0')
+      setBufferDaysInput(nextInputValue)
+
+      const parsed = parseDeliveryBufferDays(nextInputValue)
+      if (parsed !== null) {
+        applyBufferChanges(true, parsed)
+      }
     }
   }
 
   const handleBufferDaysChange = (value: string) => {
-    setBufferDaysInput(value)
-    setBufferDirty(true)
+    // Allow only numeric input
+    const numericValue = value.replace(/[^0-9]/g, '')
+    setBufferDaysInput(numericValue)
     setBufferError(null)
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    
+    // Set new timer for auto-apply
+    debounceTimerRef.current = setTimeout(() => {
+      const parsed = parseDeliveryBufferDays(numericValue)
+      if (parsed !== null) {
+        applyBufferChanges(true, parsed)
+      }
+    }, 500)
   }
 
-  const handleApplyDeliveryBuffer = async () => {
-    if (!onConfigChange) {
-      setBufferDirty(false)
-      return
-    }
-
-    const parsed = parseDeliveryBufferDays(bufferDaysInput)
-
-    if (bufferEnabled && parsed === null) {
-      setBufferError('Informe um número válido maior ou igual a zero')
-      toast({
-        variant: 'destructive',
-        title: 'Valor inválido',
-        description: 'Use apenas números para os dias adicionais de entrega.',
-      })
-      return
-    }
-
+  const applyBufferChanges = async (enabled: boolean, days: number) => {
+    if (!onConfigChange) return
+    
     try {
-      const normalized = bufferEnabled ? (parsed ?? 0) : 0
       await Promise.resolve(
         onConfigChange({
-          includeDeliveryBuffer: bufferEnabled,
-          deliveryBufferDays: bufferEnabled ? normalized : 0,
+          includeDeliveryBuffer: enabled,
+          deliveryBufferDays: enabled ? days : 0,
         }),
       )
-      setBufferDirty(false)
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -205,17 +225,15 @@ export function PurchaseListView({
     }
   }
 
-  const parsedBufferDays = parseDeliveryBufferDays(bufferDaysInput)
-  const previewBufferDays =
-    bufferEnabled && parsedBufferDays !== null
-      ? parsedBufferDays
-      : bufferEnabled
-        ? 0
-        : configBufferDays
-  const previewEffectiveCoverage = bufferEnabled
-    ? baseCoverageDays + (parsedBufferDays !== null ? parsedBufferDays : 0)
-    : effectiveCoverageDays
-  const applyDisabled = isLoading || !bufferDirty
+  // Cleanup timer on unmount
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
 
   // Filter products based on search term and filters
   const filteredProducts = React.useMemo(() => {
@@ -408,6 +426,40 @@ export function PurchaseListView({
   }
 
   /**
+   * Handle adding products manually
+   */
+  const handleAddProducts = React.useCallback(
+    (newProducts: PurchaseRequirementResult[]) => {
+      // Add new products to the results
+      const updatedProducts = [...results.products, ...newProducts]
+      
+      // Update results with new products
+      results.products = updatedProducts
+      results.productsNeedingOrder = updatedProducts.length
+      results.totalProducts = updatedProducts.length
+      
+      // Recalculate total investment
+      results.totalInvestment = updatedProducts.reduce(
+        (sum, product) => sum + (product.estimatedCost || 0),
+        0
+      )
+      
+      // Initialize quantities and selection for new products
+      const newQuantities: Record<string, number> = { ...quantities }
+      const newSelection = new Set(selectedProducts)
+      
+      newProducts.forEach((product) => {
+        newQuantities[product.sku] = Math.ceil(product.suggestedQuantity)
+        newSelection.add(product.sku)
+      })
+      
+      setQuantities(newQuantities)
+      setSelectedProducts(newSelection)
+    },
+    [results, quantities, selectedProducts]
+  )
+
+  /**
    * Generate purchase order
    */
   const handleGenerateOrder = () => {
@@ -489,66 +541,11 @@ export function PurchaseListView({
         </div>
       </div>
 
-      <div className="px-6 py-4 border-b flex-shrink-0 bg-white">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={bufferEnabled}
-              onCheckedChange={handleBufferToggle}
-              disabled={isLoading}
-            />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-900">Incluir tempo de entrega</p>
-              <p className="text-xs text-muted-foreground">Adiciona dias extras ao horizonte para proteger o pedido.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step="1"
-              value={bufferEnabled ? bufferDaysInput : ''}
-              onChange={(event) => handleBufferDaysChange(event.target.value)}
-              placeholder="Dias extras"
-              disabled={!bufferEnabled || isLoading}
-              className="w-28 h-8"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleApplyDeliveryBuffer}
-              disabled={applyDisabled}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                  Atualizando...
-                </>
-              ) : (
-                'Atualizar cálculo'
-              )}
-            </Button>
-          </div>
-        </div>
-        {bufferError ? (
-          <p className="mt-2 text-xs text-red-600">{bufferError}</p>
-        ) : (
-          <p className="mt-2 text-xs text-muted-foreground">
-            {bufferEnabled
-              ? `Novo alvo: ${Math.round(previewEffectiveCoverage)} dias (base ${baseCoverageDays}${
-                  bufferEnabled ? ` + entrega ${Math.round(previewBufferDays)}` : ''
-                }).`
-              : `Cálculo atual considera ${coverageLabel}.`}
-          </p>
-        )}
-      </div>
-
       <div className="px-6 py-3 border-b flex-shrink-0 bg-gray-50">
         <div className="flex items-center gap-3">
             {/* Brand Filter */}
           <Select value={brandFilter} onValueChange={setBrandFilter}>
-            <SelectTrigger className="w-[190px] h-8">
+            <SelectTrigger className="w-[140px] h-8">
               {brandTriggerLabel}
             </SelectTrigger>
             <SelectContent container={portalContainer}>
@@ -565,7 +562,7 @@ export function PurchaseListView({
 
             {/* Supplier Filter */}
           <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-            <SelectTrigger className="w-[190px] h-8">
+            <SelectTrigger className="w-[160px] h-8">
               {supplierTriggerLabel}
             </SelectTrigger>
             <SelectContent container={portalContainer}>
@@ -582,7 +579,7 @@ export function PurchaseListView({
 
             {/* Category Filter - placeholder for now */}
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[190px] h-8">
+            <SelectTrigger className="w-[155px] h-8">
               {categoryTriggerLabel}
             </SelectTrigger>
             <SelectContent container={portalContainer}>
@@ -599,7 +596,7 @@ export function PurchaseListView({
 
           {/* Warehouse Filter */}
           <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-            <SelectTrigger className="w-[190px] h-8">
+            <SelectTrigger className="w-[145px] h-8">
               {warehouseTriggerLabel}
             </SelectTrigger>
             <SelectContent container={portalContainer}>
@@ -613,6 +610,87 @@ export function PurchaseListView({
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Delivery Protection Popover */}
+            <Popover modal={false}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 min-w-[140px]"
+                >
+                  <Clock className="h-3.5 w-3.5 mr-1.5" />
+                  {bufferEnabled ? `+${bufferDaysInput || 0} dias entrega` : 'Prazo Entrega'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-72" 
+                align="start" 
+                sideOffset={5}
+                container={portalContainer ?? undefined}
+                onOpenAutoFocus={(e) => {
+                  e.preventDefault()
+                  if (bufferEnabled) {
+                    setTimeout(() => {
+                      bufferInputRef.current?.focus()
+                      bufferInputRef.current?.select()
+                    }, 100)
+                  }
+                }}
+                onInteractOutside={(e) => {
+                  const target = e.target as HTMLElement
+                  if (target.closest('input')) {
+                    e.preventDefault()
+                  }
+                }}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Prazo de Entrega</label>
+                    <Switch 
+                      checked={bufferEnabled} 
+                      onCheckedChange={(checked) => {
+                        handleBufferToggle(checked)
+                        if (checked) {
+                          setTimeout(() => {
+                            bufferInputRef.current?.focus()
+                            bufferInputRef.current?.select()
+                          }, 100)
+                        }
+                      }}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {bufferEnabled && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          ref={bufferInputRef}
+                          type="number"
+                          value={bufferDaysInput}
+                          onChange={(e) => handleBufferDaysChange(e.target.value)}
+                          onFocus={(e) => e.target.select()}
+                          className="w-20 h-7 text-sm"
+                          inputMode="numeric"
+                          placeholder="0"
+                          min={0}
+                          max={90}
+                          disabled={isLoading}
+                        />
+                        <span className="text-sm text-muted-foreground">dias extras</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Cobertura total: {baseCoverageDays + (parseInt(bufferDaysInput) || 0)} dias
+                        {isLoading && ' (atualizando...)'}
+                      </p>
+                    </>
+                  )}
+                  {bufferError && (
+                    <p className="text-xs text-red-600">{bufferError}</p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {/* Critical Stock Button */}
             <Button
@@ -644,6 +722,7 @@ export function PurchaseListView({
             <Button
               size="sm"
               className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => setAddProductModalOpen(true)}
             >
               <Package className="h-4 w-4 mr-1.5" />
               Add Produto
@@ -794,6 +873,15 @@ export function PurchaseListView({
             </div>
           </div>
         </DialogFooter>
+        
+        {/* Add Product Modal */}
+        <AddProductModal
+          open={addProductModalOpen}
+          onOpenChange={setAddProductModalOpen}
+          existingProducts={results.products}
+          onAddProducts={handleAddProducts}
+          organizationId={organizationId}
+        />
     </div>
   )
 }
@@ -1004,11 +1092,6 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
-
-
-
-
-
 
 
 

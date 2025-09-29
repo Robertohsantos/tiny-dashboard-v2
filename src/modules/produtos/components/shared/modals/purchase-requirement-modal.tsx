@@ -231,7 +231,7 @@ export function PurchaseRequirementModal({
           'flex flex-col',
           view === 'list'
             ? 'h-[90vh] max-h-[90vh] sm:max-w-6xl p-0 gap-0 overflow-hidden'
-            : 'max-h-[90vh] sm:max-w-2xl p-9 gap-6 overflow-y-auto'
+            : 'max-h-[90vh] sm:max-w-[40rem] p-9 gap-6 overflow-y-auto'
         )}
         aria-describedby={
           view === 'form'
@@ -315,6 +315,9 @@ export function PurchaseRequirementModal({
               results={results}
               onClose={handleClose}
               onBack={() => setView('form')}
+              onConfigChange={handleConfigUpdate}
+              isLoading={isCalculating}
+              organizationId={organizationId}
             />
           )
         )}
@@ -322,7 +325,5 @@ export function PurchaseRequirementModal({
     </Dialog>
   )
 }
-
-
 
 

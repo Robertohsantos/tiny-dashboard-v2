@@ -58,7 +58,7 @@ export interface MultiSelectProps {
 }
 
 const sizeClasses = {
-  sm: 'w-[180px] h-8 text-xs',
+  sm: 'w-[171px] h-8 text-xs',
   default: 'w-[220px] h-9 text-sm',
   lg: 'w-[260px] h-10 text-base',
 }
@@ -125,14 +125,27 @@ export function MultiSelect({
   }
 
   // Get display text for trigger
+  const enabledOptions = React.useMemo(
+    () => options.filter((opt) => !opt.disabled),
+    [options],
+  )
+
   const getDisplayText = () => {
+    if (showAvailableCount) {
+      const baseLabel = label || placeholder || 'Selecionados'
+      const enabledCount = enabledOptions.length
+      const selectedCount = effectiveValue.length
+      const displayCount = selectedCount > 0 ? selectedCount : enabledCount
+      return `${baseLabel} (${displayCount})`
+    }
+
     if (effectiveValue.length === 0) return placeholder
 
     const selectedOptions = options.filter((opt) =>
       effectiveValue.includes(opt.value),
     )
 
-    if (effectiveValue.length === options.length) {
+    if (effectiveValue.length === enabledOptions.length) {
       return 'Todos selecionados'
     }
 
