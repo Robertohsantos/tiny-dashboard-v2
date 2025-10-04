@@ -14,7 +14,7 @@ import { api } from '@/igniter.client'
 import { Avatar } from '@/components/ui/avatar'
 import { AvatarFallback, AvatarImage } from '@radix-ui/react-avatar'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import SiteLogoShowcase from './site-logo-showcase'
+import { SiteLogoShowcase } from './site-logo-showcase'
 
 export function MainHeroSection() {
   const [open, setOpen] = useState(false)

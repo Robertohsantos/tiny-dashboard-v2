@@ -385,8 +385,6 @@ export class PurchaseRequirementCalculator {
       leadTimeDays,
       requiredQuantity,
       suggestedQuantity,
-      grossRequirement,
-      netRequirement,
     })
 
     return {
@@ -396,6 +394,7 @@ export class PurchaseRequirementCalculator {
       brand: product.brand,
       supplier: product.supplier,
       warehouse: product.warehouse,
+      category: product.category ?? 'N/A',
 
       // Current position
       currentStock,
@@ -419,6 +418,8 @@ export class PurchaseRequirementCalculator {
       targetInventory,
       requiredQuantity,
       suggestedQuantity,
+      grossRequirement,
+      netRequirement,
       moq: 0, // MOQ removed
       packSize: 0, // Pack size removed
 
@@ -632,4 +633,3 @@ export class PurchaseRequirementCalculator {
     return alerts
   }
 }
-

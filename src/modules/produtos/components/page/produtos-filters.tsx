@@ -29,6 +29,7 @@ import {
   type MarcaId,
   type FornecedorId,
 } from '@/modules/produtos/constants/produtos.constants'
+import { FilterType } from '@/modules/produtos/constants/produtos-filters.constants'
 
 import { cn } from '@/modules/ui'
 
@@ -115,7 +116,11 @@ export const ProdutosFilters = React.memo(function ProdutosFilters({
     hasActiveFilters,
 
     activeFilterCount,
+
+    primaryFilter,
   } = useProductFilters()
+
+  const ignoreChanges = React.useCallback((_values: string[]) => {}, [])
 
   // Calculate product counts for each option
 
@@ -136,6 +141,10 @@ export const ProdutosFilters = React.memo(function ProdutosFilters({
 
     [allProducts, filters],
   )
+
+  const depositoIsPrimary = primaryFilter === FilterType.DEPOSITO
+  const marcaIsPrimary = primaryFilter === FilterType.MARCA
+  const fornecedorIsPrimary = primaryFilter === FilterType.FORNECEDOR
 
   // Prepare filtered option lists based on current availability
   const availableDepositoValues = React.useMemo(() => {
@@ -174,10 +183,7 @@ export const ProdutosFilters = React.memo(function ProdutosFilters({
             return true
           }
 
-          return (
-            availableDepositoValues.has(opt.value) ||
-            filters.deposito.includes(opt.value)
-          )
+          return availableDepositoValues.has(opt.value)
         })
         .map((opt) => ({
           value: opt.value,
@@ -203,10 +209,7 @@ export const ProdutosFilters = React.memo(function ProdutosFilters({
             return true
           }
 
-          return (
-            availableFornecedorValues.has(opt.value) ||
-            filters.fornecedor.includes(opt.value)
-          )
+          return availableFornecedorValues.has(opt.value)
         })
         .map((opt) => ({
           value: opt.value,
@@ -232,10 +235,7 @@ export const ProdutosFilters = React.memo(function ProdutosFilters({
             return true
           }
 
-          return (
-            availableMarcaValues.has(opt.value) ||
-            filters.marca.includes(opt.value)
-          )
+          return availableMarcaValues.has(opt.value)
         })
         .map((opt) => ({
           value: opt.value,
@@ -251,43 +251,6 @@ export const ProdutosFilters = React.memo(function ProdutosFilters({
       showCounts,
     ],
   )
-
-  const mergeWithHiddenSelections = React.useCallback(
-    (visibleValues: string[], hiddenValues: string[]) => {
-      if (visibleValues.length === 0 || hiddenValues.length === 0) {
-        return visibleValues
-      }
-
-      const merged = [...visibleValues]
-
-      for (const value of hiddenValues) {
-        if (!merged.includes(value)) {
-          merged.push(value)
-        }
-      }
-
-      return merged
-    },
-    [],
-  )
-
-  const hiddenDepositoSelections = React.useMemo(() => {
-    const optionValueSet = new Set(depositoOptions.map((opt) => opt.value))
-
-    return filters.deposito.filter((value) => !optionValueSet.has(value))
-  }, [depositoOptions, filters.deposito])
-
-  const hiddenMarcaSelections = React.useMemo(() => {
-    const optionValueSet = new Set(marcaOptions.map((opt) => opt.value))
-
-    return filters.marca.filter((value) => !optionValueSet.has(value))
-  }, [filters.marca, marcaOptions])
-
-  const hiddenFornecedorSelections = React.useMemo(() => {
-    const optionValueSet = new Set(fornecedorOptions.map((opt) => opt.value))
-
-    return filters.fornecedor.filter((value) => !optionValueSet.has(value))
-  }, [filters.fornecedor, fornecedorOptions])
 
   const sanitizedDepositoValues = React.useMemo(() => {
     const validValues = depositoOptions.map((opt) => opt.value)
@@ -343,29 +306,27 @@ export const ProdutosFilters = React.memo(function ProdutosFilters({
 
       <MultiSelect
         value={sanitizedDepositoValues}
-        onValueChange={(values) =>
-          setDeposito(
-            mergeWithHiddenSelections(
-              values,
-              hiddenDepositoSelections,
-            ) as DepositoId[],
-          )
+        onValueChange={ignoreChanges}
+        commitMode="manual"
+        onApply={(values) =>
+          setDeposito(values as DepositoId[])
         }
         options={depositoOptions}
         label="Depósito"
         placeholder="Todos os depósitos"
         searchable={false}
         showAvailableCount={true}
+        highlighted={depositoIsPrimary}
       />
 
       {/* Marca Filter */}
 
       <MultiSelect
         value={sanitizedMarcaValues}
-        onValueChange={(values) =>
-          setMarca(
-            mergeWithHiddenSelections(values, hiddenMarcaSelections) as MarcaId[],
-          )
+        onValueChange={ignoreChanges}
+        commitMode="manual"
+        onApply={(values) =>
+          setMarca(values as MarcaId[])
         }
         options={marcaOptions}
         label="Marca"
@@ -373,25 +334,25 @@ export const ProdutosFilters = React.memo(function ProdutosFilters({
         searchable={true}
         maxDisplayItems={2}
         showAvailableCount={true}
+        highlighted={marcaIsPrimary}
+        optionsMaxHeight={214}
       />
 
       {/* Fornecedor Filter */}
 
       <MultiSelect
         value={sanitizedFornecedorValues}
-        onValueChange={(values) =>
-          setFornecedor(
-            mergeWithHiddenSelections(
-              values,
-              hiddenFornecedorSelections,
-            ) as FornecedorId[],
-          )
+        onValueChange={ignoreChanges}
+        commitMode="manual"
+        onApply={(values) =>
+          setFornecedor(values as FornecedorId[])
         }
         options={fornecedorOptions}
         label="Fornecedor"
         placeholder="Todos os fornecedores"
         searchable={false}
         showAvailableCount={true}
+        highlighted={fornecedorIsPrimary}
       />
 
       {/* Clear Filters Section */}

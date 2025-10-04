@@ -29,9 +29,11 @@ import {
   ArrowLeftRight,
   ShoppingCart,
   BarChart3,
+  Package,
 } from 'lucide-react'
 import type { Produto } from '@/modules/produtos/types/produtos.types'
 import { usePurchaseRequirementModal } from '@/modules/produtos/contexts/purchase-requirement-context'
+import { useNoMovementModal } from '@/modules/produtos/contexts/no-movement-context'
 
 // Re-export provider for external use
 export { ProdutosDataTableProvider } from './provider'
@@ -44,6 +46,8 @@ interface ProdutosDataTableProps {
   isLoading?: boolean
   /** Export callback */
   onExport?: (params: { format: 'csv' | 'excel' | 'pdf'; file: File }) => void
+  /** Total products count (before filtering) */
+  totalProducts?: number
 }
 
 /**
@@ -55,7 +59,12 @@ export const ProdutosDataTable = React.memo(function ProdutosDataTable({
   data,
   isLoading = false,
   onExport,
+  totalProducts,
 }: ProdutosDataTableProps) {
+  // Calculate displayed products count
+  const displayedCount = data?.length || 0
+  const totalCount = totalProducts || displayedCount
+  
   return (
     <ProdutosDataTableProvider data={data} onExport={onExport}>
       <div className="flex w-full flex-col gap-4">
@@ -63,15 +72,28 @@ export const ProdutosDataTable = React.memo(function ProdutosDataTable({
         <ProdutosToolbar />
 
         {/* Table */}
-        <div className="rounded-lg border bg-white">
+        <div className="rounded-lg border bg-white relative">
           {isLoading ? (
             <div className="flex h-24 items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : (
-            <div className="h-[568px] overflow-y-auto">
-              <DataTable className="w-full" />
-            </div>
+            <>
+              <div className="h-[568px] overflow-y-auto">
+                <DataTable className="w-full" />
+              </div>
+              {/* Footer with products count */}
+              <div className="sticky bottom-0 border-t bg-white/95 backdrop-blur px-6 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      Mostrando <span className="font-medium text-foreground">{displayedCount}</span> de <span className="font-medium text-foreground">{totalCount}</span> produtos
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -89,6 +111,9 @@ const ProdutosToolbar = React.memo(function ProdutosToolbar() {
 
   // Get purchase requirement modal controls
   const { open: openPurchaseRequirementModal } = usePurchaseRequirementModal()
+  
+  // Get no movement modal controls
+  const { open: openNoMovementModal } = useNoMovementModal()
 
   // Apply global filter when it changes
   React.useEffect(() => {
@@ -114,9 +139,8 @@ const ProdutosToolbar = React.memo(function ProdutosToolbar() {
   }, [openPurchaseRequirementModal])
 
   const handleProdutosSemMovimentacao = React.useCallback(() => {
-    console.log('Abrir Produtos sem Movimentação')
-    // TODO: Implementar modal de produtos sem movimentação
-  }, [])
+    openNoMovementModal()
+  }, [openNoMovementModal])
 
   return (
     <div className="flex items-center justify-between px-2">

@@ -19,6 +19,7 @@ const MAX_DAYS = 365
 export function useDefaultCoverageDays() {
   const [defaultDays, setDefaultDaysState] = useState<number>(DEFAULT_VALUE)
   const [isLoading, setIsLoading] = useState(true)
+  const [hasCustomDefault, setHasCustomDefault] = useState(false)
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -33,6 +34,7 @@ export function useDefaultCoverageDays() {
           parsedValue <= MAX_DAYS
         ) {
           setDefaultDaysState(parsedValue)
+          setHasCustomDefault(true)
         }
       }
     } catch (error) {
@@ -54,6 +56,7 @@ export function useDefaultCoverageDays() {
     const validatedDays = Math.max(MIN_DAYS, Math.min(MAX_DAYS, days))
 
     setDefaultDaysState(validatedDays)
+    setHasCustomDefault(true)
 
     try {
       localStorage.setItem(STORAGE_KEY, String(validatedDays))
@@ -69,8 +72,17 @@ export function useDefaultCoverageDays() {
    * Reset to default value
    */
   const resetToDefault = useCallback(() => {
-    setDefaultDays(DEFAULT_VALUE)
-  }, [setDefaultDays])
+    setDefaultDaysState(DEFAULT_VALUE)
+    setHasCustomDefault(false)
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch (error) {
+      console.error(
+        'Error clearing default coverage days from localStorage:',
+        error,
+      )
+    }
+  }, [])
 
   return {
     defaultDays,
@@ -80,5 +92,6 @@ export function useDefaultCoverageDays() {
     MIN_DAYS,
     MAX_DAYS,
     DEFAULT_VALUE,
+    hasCustomDefault,
   }
 }

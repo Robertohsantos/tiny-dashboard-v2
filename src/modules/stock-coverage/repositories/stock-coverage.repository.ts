@@ -80,7 +80,7 @@ export class StockCoverageRepository {
       needsReorder?: boolean
     }
   ): Promise<Product[]> {
-    const where: Prisma.ProductWhereInput = {
+    let where: Prisma.ProductWhereInput = {
       organizationId,
       ...(filters?.warehouse && { warehouse: filters.warehouse }),
       ...(filters?.supplier && { supplier: filters.supplier }),
@@ -110,9 +110,11 @@ export class StockCoverageRepository {
   /**
    * Save calculated coverage to database
    */
-  async saveStockCoverage(coverage: Omit<StockCoverage, 'id'>): Promise<StockCoverage> {
+  async saveStockCoverage(
+    data: Prisma.StockCoverageUncheckedCreateInput,
+  ): Promise<StockCoverage> {
     return prisma.stockCoverage.create({
-      data: coverage
+      data,
     })
   }
 

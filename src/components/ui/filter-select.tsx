@@ -85,7 +85,7 @@ export function FilterSelect({
   isLoading = false,
   ariaLabel,
   triggerIcon,
-  maxHeight = '300px',
+  maxHeight = '280px',
   showCounts = false,
 }: FilterSelectProps) {
   // Memoize the selected option for performance
@@ -159,7 +159,10 @@ export function FilterSelect({
           </div>
         </SelectTrigger>
 
-        <SelectContent className={cn('overflow-y-auto')} style={{ maxHeight }}>
+        <SelectContent
+          className={cn('overflow-y-auto scrollbar-vertical')}
+          style={{ maxHeight }}
+        >
           {isLoading ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
               Carregando...

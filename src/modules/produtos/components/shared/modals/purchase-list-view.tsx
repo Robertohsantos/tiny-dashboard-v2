@@ -27,18 +27,23 @@ import {
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select'
+import { MultiSelect } from '@/components/ui/multi-select'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/modules/ui'
+import {
+  normalizeMarca,
+  isFilterActive,
+} from '@/modules/produtos/utils/produtos-transforms.utils'
+import { calculateAvailableOptions } from '@/modules/produtos/utils/produtos-filters.utils'
+import { FilterType } from '@/modules/produtos/constants/produtos-filters.constants'
+import {
+  getDepositoOptions,
+  getFornecedorOptions,
+} from '@/modules/produtos/constants/produtos.constants'
 import type {
   PurchaseBatchResult,
   PurchaseRequirementResult,
@@ -61,11 +66,107 @@ interface PurchaseListViewProps {
   isLoading?: boolean
   /** Catalog products available for manual additions */
   catalogProducts?: Produto[]
+  /** Filtros aplicados no modal principal */
+  initialFilters?: PurchaseRequirementConfig['filters']
+  /** Totais de opcoes registrados no modal principal */
+  filterTotals?: PurchaseRequirementConfig['filterTotals']
+  /** Filtro base definido no modal principal */
+  primaryFilter?: PurchaseRequirementConfig['primaryFilter']
 }
 
 /**
  * Purchase list view rendered inside the purchase requirement modal.
  */
+const areArraysEqual = (a: string[], b: string[]) => {
+  if (a.length !== b.length) return false
+  const sortedA = [...a].sort()
+  const sortedB = [...b].sort()
+  return sortedA.every((value, index) => value === sortedB[index])
+}
+
+const normalizePlainFilter = (value: string): string => {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+const mapValuesToNormalizedSet = (
+  values: string[] | undefined,
+  normalizer: (value: string) => string,
+) => {
+  if (!Array.isArray(values) || values.length === 0) {
+    return []
+  }
+
+  const set = new Set<string>()
+  values.forEach((value) => {
+    if (!value) return
+    const normalized = normalizer(value)
+    if (normalized) {
+      set.add(normalized)
+    }
+  })
+  return Array.from(set)
+}
+
+const buildLabelMap = (
+  entries: Array<{ value?: string | null; label?: string | null }>,
+  normalizer: (value: string) => string,
+) => {
+  const map = new Map<string, string>()
+
+  const register = (value?: string | null, label?: string | null) => {
+    const rawValue = value?.trim()
+    const baseLabel = (label ?? value)?.trim()
+
+    if (!rawValue && !baseLabel) {
+      return
+    }
+
+    const finalLabel = baseLabel || rawValue || ''
+    if (!finalLabel) {
+      return
+    }
+
+    const keys = new Set<string>()
+    if (rawValue) keys.add(rawValue)
+    if (baseLabel) keys.add(baseLabel)
+    const normalizedFromValue = rawValue ? normalizer(rawValue) : ''
+    const normalizedFromLabel = baseLabel ? normalizer(baseLabel) : ''
+    if (normalizedFromValue) keys.add(normalizedFromValue)
+    if (normalizedFromLabel) keys.add(normalizedFromLabel)
+
+    keys.forEach((key) => {
+      if (!map.has(key)) {
+        map.set(key, finalLabel)
+      }
+    })
+  }
+
+  entries.forEach(({ value: entryValue, label: entryLabel }) => {
+    register(entryValue, entryLabel)
+  })
+
+  return map
+}
+
+const getDisplayLabel = (
+  map: Map<string, string>,
+  value: string,
+  normalizer: (v: string) => string,
+): string => {
+  const direct = map.get(value)
+  if (direct) {
+    return direct
+  }
+
+  const normalized = normalizer(value)
+  return map.get(normalized) ?? value
+}
+
 export function PurchaseListView({
   results,
   onClose,
@@ -73,6 +174,9 @@ export function PurchaseListView({
   onConfigChange,
   isLoading = false,
   catalogProducts = [],
+  initialFilters,
+  filterTotals,
+  primaryFilter: primaryFilterProp,
 }: PurchaseListViewProps) {
   const { toast } = useToast()
   const portalContainerRef = React.useRef<HTMLDivElement | null>(null)
@@ -84,6 +188,63 @@ export function PurchaseListView({
     new Set(),
   )
   const [quantities, setQuantities] = React.useState<Record<string, number>>({})
+
+  const originalTotalsRef = React.useRef({
+    totalProducts:
+      catalogProducts?.length ?? results.totalProducts ?? results.products.length,
+    productsNeedingOrder: results.productsNeedingOrder ?? results.products.length,
+  })
+  const [manualProducts, setManualProducts] = React.useState<
+    PurchaseRequirementResult[]
+  >([])
+
+  const combinedProducts = React.useMemo(
+    () => [...results.products, ...manualProducts],
+    [results.products, manualProducts],
+  )
+
+  const selectedCount = React.useMemo(() => selectedProducts.size, [selectedProducts])
+
+  React.useEffect(() => {
+    originalTotalsRef.current = {
+      totalProducts:
+        catalogProducts?.length ?? results.totalProducts ?? results.products.length,
+      productsNeedingOrder:
+        results.productsNeedingOrder ?? results.products.length,
+    }
+    setManualProducts([])
+  }, [results.timestamp, catalogProducts?.length, results.totalProducts, results.productsNeedingOrder, results.products.length])
+
+  const totalCatalogProducts = React.useMemo(() => {
+    return catalogProducts?.length ?? originalTotalsRef.current.totalProducts
+  }, [catalogProducts])
+
+  const overallProductsNeedingOrder = React.useMemo(() => {
+    if (totalCatalogProducts === 0) {
+      return 0
+    }
+    return Math.min(selectedCount, totalCatalogProducts)
+  }, [selectedCount, totalCatalogProducts])
+
+  const availableManualProducts = React.useMemo(() => {
+    if (!catalogProducts || catalogProducts.length === 0) {
+      return []
+    }
+
+    const existingSkuSet = new Set(
+      combinedProducts.map((product) => product.sku.trim().toUpperCase()),
+    )
+
+    return catalogProducts.filter((product) => {
+      const normalizedSku = product.sku.trim().toUpperCase()
+      return !existingSkuSet.has(normalizedSku)
+    })
+  }, [catalogProducts, combinedProducts])
+
+  const remainingProductsCount = React.useMemo(
+    () => availableManualProducts.length,
+    [availableManualProducts],
+  )
 
   const baseCoverageDays = results.config.coverageDays ?? 0
   const configBufferEnabled = results.config.includeDeliveryBuffer ?? false
@@ -101,13 +262,254 @@ export function PurchaseListView({
   )
   const [bufferError, setBufferError] = React.useState<string | null>(null)
 
-  // Filter states
-  const [brandFilter, setBrandFilter] = React.useState<string>('all')
-  const [supplierFilter, setSupplierFilter] = React.useState<string>('all')
-  const [categoryFilter, setCategoryFilter] = React.useState<string>('all')
-  const [warehouseFilter, setWarehouseFilter] = React.useState<string>('all')
+
+  const initialConfigFilters = React.useMemo(
+    () => initialFilters ?? results.config.filters ?? {},
+    [initialFilters, results.config.filters],
+  )
+  // Get unique filter options
+  const filterableProducts = React.useMemo<
+    Array<Pick<Produto, 'deposito' | 'marca' | 'fornecedor' | 'categoria'>>
+  >(() => {
+    const items: Array<Pick<Produto, 'deposito' | 'marca' | 'fornecedor' | 'categoria'>> = []
+
+    combinedProducts.forEach((product) => {
+      items.push({
+        deposito: product.warehouse ?? '',
+        marca: product.brand ?? '',
+        fornecedor: product.supplier ?? '',
+        categoria: product.category ?? '',
+      })
+    })
+
+    if (catalogProducts.length > 0) {
+      catalogProducts.forEach((product) => {
+        items.push({
+          deposito: product.deposito ?? '',
+          marca: product.marca ?? '',
+          fornecedor: product.fornecedor ?? '',
+          categoria: product.categoria ?? '',
+        })
+      })
+    }
+
+    return items
+  }, [catalogProducts, combinedProducts])
+
+
+  const brandLabelMap = React.useMemo(
+    () =>
+      buildLabelMap(
+        [
+          ...filterableProducts.map((item) => ({ value: item.marca, label: item.marca })),
+          ...(initialConfigFilters.marcas ?? []).map((value) => ({ value, label: value })),
+        ],
+        normalizeMarca,
+      ),
+    [filterableProducts, initialConfigFilters.marcas],
+  )
+
+  const supplierLabelMap = React.useMemo(
+    () =>
+      buildLabelMap(
+        [
+          ...getFornecedorOptions()
+            .filter((opt) => opt.value !== 'all')
+            .map((opt) => ({ value: opt.value, label: opt.label })),
+          ...filterableProducts.map((item) => ({
+            value: item.fornecedor,
+            label: item.fornecedor,
+          })),
+          ...(initialConfigFilters.fornecedores ?? []).map((value) => ({
+            value,
+            label: value,
+          })),
+        ],
+        normalizePlainFilter,
+      ),
+    [filterableProducts, initialConfigFilters.fornecedores],
+  )
+
+  const categoryLabelMap = React.useMemo(
+    () =>
+      buildLabelMap(
+        [
+          ...filterableProducts.map((item) => ({ value: item.categoria, label: item.categoria })),
+          ...(initialConfigFilters.categorias ?? []).map((value) => ({ value, label: value })),
+        ],
+        normalizePlainFilter,
+      ),
+    [filterableProducts, initialConfigFilters.categorias],
+  )
+
+  const warehouseLabelMap = React.useMemo(
+    () =>
+      buildLabelMap(
+        [
+          ...getDepositoOptions()
+            .filter((opt) => opt.value !== 'all')
+            .map((opt) => ({ value: opt.value, label: opt.label })),
+          ...filterableProducts.map((item) => ({ value: item.deposito, label: item.deposito })),
+          ...(initialConfigFilters.depositos ?? []).map((value) => ({ value, label: value })),
+        ],
+        normalizePlainFilter,
+      ),
+    [filterableProducts, initialConfigFilters.depositos],
+  )
+
+  const allBrandSlugs = React.useMemo(() => {
+    const set = new Set<string>()
+    filterableProducts.forEach((item) => {
+      const slug = normalizeMarca(item.marca)
+      if (slug) {
+        set.add(slug)
+      }
+    })
+    return Array.from(set)
+  }, [filterableProducts])
+
+  const allSupplierSlugs = React.useMemo(() => {
+    const set = new Set<string>()
+    filterableProducts.forEach((item) => {
+      const normalized = normalizePlainFilter(item.fornecedor ?? '')
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return Array.from(set)
+  }, [filterableProducts])
+
+  const allCategorySlugs = React.useMemo(() => {
+    const set = new Set<string>()
+    filterableProducts.forEach((item) => {
+      const normalized = normalizePlainFilter(item.categoria ?? '')
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return Array.from(set)
+  }, [filterableProducts])
+
+  const allWarehouseSlugs = React.useMemo(() => {
+    const set = new Set<string>()
+    filterableProducts.forEach((item) => {
+      const normalized = normalizePlainFilter(item.deposito ?? '')
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return Array.from(set)
+  }, [filterableProducts])
+
+  const deriveInitialSelection = React.useCallback(
+    (
+      values: string[] | undefined,
+      normalizer: (value: string) => string,
+      fallback: string[],
+    ) => {
+      const normalized = mapValuesToNormalizedSet(values, normalizer)
+      if (normalized.length > 0) {
+        return normalized
+      }
+      return [...fallback]
+    },
+    [],
+  )
+
+  const initialBrandSelection = React.useMemo(
+    () =>
+      deriveInitialSelection(
+        initialConfigFilters.marcas,
+        normalizeMarca,
+        allBrandSlugs,
+      ),
+    [
+      initialConfigFilters.marcas,
+      deriveInitialSelection,
+      allBrandSlugs,
+    ],
+  )
+
+  const initialSupplierSelection = React.useMemo(
+    () =>
+      deriveInitialSelection(
+        initialConfigFilters.fornecedores,
+        normalizePlainFilter,
+        allSupplierSlugs,
+      ),
+    [
+      initialConfigFilters.fornecedores,
+      deriveInitialSelection,
+      allSupplierSlugs,
+    ],
+  )
+
+  const initialCategorySelection = React.useMemo(
+    () =>
+      deriveInitialSelection(
+        initialConfigFilters.categorias,
+        normalizePlainFilter,
+        allCategorySlugs,
+      ),
+    [
+      initialConfigFilters.categorias,
+      deriveInitialSelection,
+      allCategorySlugs,
+    ],
+  )
+
+  const initialWarehouseSelection = React.useMemo(
+    () =>
+      deriveInitialSelection(
+        initialConfigFilters.depositos,
+        normalizePlainFilter,
+        allWarehouseSlugs,
+      ),
+    [
+      initialConfigFilters.depositos,
+      deriveInitialSelection,
+      allWarehouseSlugs,
+    ],
+  )
+
+  const [brandFilter, setBrandFilter] = React.useState<string[]>(
+    () => initialBrandSelection,
+  )
+  const [supplierFilter, setSupplierFilter] = React.useState<string[]>(
+    () => initialSupplierSelection,
+  )
+  const [categoryFilter, setCategoryFilter] = React.useState<string[]>(
+    () => initialCategorySelection,
+  )
+  const [warehouseFilter, setWarehouseFilter] = React.useState<string[]>(
+    () => initialWarehouseSelection,
+  )
   const [criticalStockOnly, setCriticalStockOnly] = React.useState(false)
   const [addProductModalOpen, setAddProductModalOpen] = React.useState(false)
+
+  const ignoreSelectChange = React.useCallback((_values: string[]) => {}, [])
+
+  const categoryFilterLabels = React.useMemo(() => {
+    if (categoryFilter.length === 0) {
+      return []
+    }
+    const labels: string[] = []
+    const seen = new Set<string>()
+    categoryFilter.forEach((value) => {
+      const label = getDisplayLabel(
+        categoryLabelMap,
+        value,
+        normalizePlainFilter,
+      )
+      const finalLabel = label || value
+      if (!seen.has(finalLabel)) {
+        seen.add(finalLabel)
+        labels.push(finalLabel)
+      }
+    })
+    return labels
+  }, [categoryFilter, categoryLabelMap])
+
 
   // Initialize quantities when results change
   React.useEffect(() => {
@@ -133,23 +535,314 @@ export function PurchaseListView({
     }
   }, [])
 
-  // Get unique filter options
-  const filterOptions = React.useMemo(() => {
-    const brands = [...new Set(results.products.map((p) => p.brand))].filter(
-      Boolean,
-    )
-    const suppliers = [
-      ...new Set(results.products.map((p) => p.supplier)),
-    ].filter(Boolean)
-    const warehouses = [
-      ...new Set(results.products.map((p) => p.warehouse)),
-    ].filter(Boolean)
-    const categories = [
-      ...new Set(results.products.map((p) => p.category).filter(Boolean)),
+  const brandUniverseCount = React.useMemo(() => {
+    const set = new Set<string>()
+    filterableProducts.forEach((item) => {
+      const slug = normalizeMarca(item.marca)
+      if (slug) {
+        set.add(slug)
+      }
+    })
+    return set.size
+  }, [filterableProducts])
+
+  const supplierUniverseCount = React.useMemo(() => {
+    const set = new Set<string>()
+    filterableProducts.forEach((item) => {
+      const normalized = normalizePlainFilter(item.fornecedor ?? '')
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return set.size
+  }, [filterableProducts])
+
+  const categoryUniverseCount = React.useMemo(() => {
+    const set = new Set<string>()
+    filterableProducts.forEach((item) => {
+      const normalized = normalizePlainFilter(item.categoria ?? '')
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return set.size
+  }, [filterableProducts])
+
+  const warehouseUniverseCount = React.useMemo(() => {
+    const set = new Set<string>()
+    filterableProducts.forEach((item) => {
+      const normalized = normalizePlainFilter(item.deposito ?? '')
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return set.size
+  }, [filterableProducts])
+
+  const effectiveFilterTotals = filterTotals ?? results.config.filterTotals
+
+  const marcaTotal = effectiveFilterTotals?.marcas
+    ?? Math.max(brandUniverseCount, initialConfigFilters.marcas?.length ?? 0)
+  const fornecedorTotal = effectiveFilterTotals?.fornecedores
+    ?? Math.max(supplierUniverseCount, initialConfigFilters.fornecedores?.length ?? 0)
+  const categoriaTotal = effectiveFilterTotals?.categorias
+    ?? Math.max(categoryUniverseCount, initialConfigFilters.categorias?.length ?? 0)
+  const depositoTotal = effectiveFilterTotals?.depositos
+    ?? Math.max(warehouseUniverseCount, initialConfigFilters.depositos?.length ?? 0)
+
+  const marcaActive = React.useMemo(
+    () => isFilterActive(brandFilter, FilterType.MARCA, marcaTotal),
+    [brandFilter, marcaTotal],
+  )
+
+  const fornecedorActive = React.useMemo(
+    () => isFilterActive(supplierFilter, FilterType.FORNECEDOR, fornecedorTotal),
+    [supplierFilter, fornecedorTotal],
+  )
+
+  const depositoActive = React.useMemo(
+    () => isFilterActive(warehouseFilter, FilterType.DEPOSITO, depositoTotal),
+    [warehouseFilter, depositoTotal],
+  )
+
+  const categoriaActive = React.useMemo(() => {
+    if (categoriaTotal === 0) return false
+    if (categoryFilter.length === 0) return true
+    return categoryFilter.length !== categoriaTotal
+  }, [categoryFilter, categoriaTotal])
+
+  const availableOptionSets = React.useMemo(() => {
+    return calculateAvailableOptions(filterableProducts as Produto[], {
+      deposito: warehouseFilter,
+      marca: brandFilter,
+      fornecedor: supplierFilter,
+      categoria:
+        categoriaActive
+          ? categoryFilter.length === 0
+            ? []
+            : categoryFilterLabels
+          : undefined,
+    })
+  }, [
+    filterableProducts,
+    brandFilter,
+    warehouseFilter,
+    supplierFilter,
+    categoryFilter,
+    categoryFilterLabels,
+    categoriaActive,
+  ])
+
+  const warehouseOptions = React.useMemo(() => {
+    const set = new Set<string>()
+    availableOptionSets.depositos.forEach((value) => {
+      if (value) {
+        const slug = normalizePlainFilter(value)
+        if (slug) set.add(slug)
+      }
+    })
+    warehouseFilter.forEach((value) => {
+      if (value) {
+        const slug = normalizePlainFilter(value)
+        if (slug) set.add(slug)
+      }
+    })
+
+    return Array.from(set)
+      .map((slug) => ({
+        value: slug,
+        label: getDisplayLabel(warehouseLabelMap, slug, normalizePlainFilter),
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+      )
+  }, [availableOptionSets.depositos, warehouseFilter, warehouseLabelMap])
+
+  const supplierOptions = React.useMemo(() => {
+    const set = new Set<string>()
+    availableOptionSets.fornecedores.forEach((value) => {
+      if (value) {
+        const slug = normalizePlainFilter(value)
+        if (slug) set.add(slug)
+      }
+    })
+    supplierFilter.forEach((value) => {
+      if (value) {
+        const slug = normalizePlainFilter(value)
+        if (slug) set.add(slug)
+      }
+    })
+
+    return Array.from(set)
+      .map((slug) => ({
+        value: slug,
+        label: getDisplayLabel(supplierLabelMap, slug, normalizePlainFilter),
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+      )
+  }, [availableOptionSets.fornecedores, supplierFilter, supplierLabelMap])
+
+  const categoryOptions = React.useMemo(() => {
+    const set = new Set<string>()
+    availableOptionSets.categorias.forEach((value) => {
+      if (value) {
+        const slug = normalizePlainFilter(value)
+        if (slug) set.add(slug)
+      }
+    })
+    categoryFilter.forEach((value) => {
+      if (value) {
+        const slug = normalizePlainFilter(value)
+        if (slug) set.add(slug)
+      }
+    })
+
+    return Array.from(set)
+      .map((slug) => ({
+        value: slug,
+        label: getDisplayLabel(categoryLabelMap, slug, normalizePlainFilter),
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+      )
+  }, [availableOptionSets.categorias, categoryFilter, categoryLabelMap])
+
+  const brandOptions = React.useMemo(() => {
+    const set = new Set<string>()
+    availableOptionSets.marcas.forEach((label) => {
+      const slug = normalizeMarca(label)
+      if (slug) {
+        set.add(slug)
+      }
+    })
+
+    brandFilter.forEach((slug) => {
+      if (slug) {
+        set.add(slug)
+      }
+    })
+
+    return Array.from(set)
+      .map((slug) => ({
+        value: slug,
+        label: getDisplayLabel(brandLabelMap, slug, normalizeMarca),
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+      )
+  }, [availableOptionSets.marcas, brandFilter, brandLabelMap])
+
+  const primaryFilter = React.useMemo(() => {
+    const states: Array<{ type: 'marca' | 'fornecedor' | 'categoria' | 'deposito'; active: boolean }> = [
+      { type: 'deposito', active: depositoActive },
+      { type: 'marca', active: marcaActive },
+      { type: 'fornecedor', active: fornecedorActive },
+      { type: 'categoria', active: categoriaActive },
     ]
 
-    return { brands, suppliers, warehouses, categories }
-  }, [results.products])
+    const persisted = primaryFilterProp ?? results.config.primaryFilter
+    if (persisted) {
+      const persistedActive = states.find((state) => state.type === persisted)
+      if (persistedActive?.active) {
+        return persisted
+      }
+    }
+
+    const firstActive = states.find((state) => state.active)
+    return firstActive?.type ?? null
+  }, [
+    primaryFilterProp,
+    results.config.primaryFilter,
+    marcaActive,
+    fornecedorActive,
+    categoriaActive,
+    depositoActive,
+  ])
+
+  const marcaIsPrimary = primaryFilter === 'marca'
+  const fornecedorIsPrimary = primaryFilter === 'fornecedor'
+  const categoriaIsPrimary = primaryFilter === 'categoria'
+  const depositoIsPrimary = primaryFilter === 'deposito'
+
+  React.useEffect(() => {
+    const filters = results.config.filters ?? {}
+
+    const nextBrands = deriveInitialSelection(
+      filters.marcas,
+      normalizeMarca,
+      allBrandSlugs,
+    )
+    const nextSuppliers = deriveInitialSelection(
+      filters.fornecedores,
+      normalizePlainFilter,
+      allSupplierSlugs,
+    )
+    const nextCategories = deriveInitialSelection(
+      filters.categorias,
+      normalizePlainFilter,
+      allCategorySlugs,
+    )
+    const nextWarehouses = deriveInitialSelection(
+      filters.depositos,
+      normalizePlainFilter,
+      allWarehouseSlugs,
+    )
+
+    setBrandFilter((prev) =>
+      areArraysEqual(prev, nextBrands) ? prev : nextBrands,
+    )
+    setSupplierFilter((prev) =>
+      areArraysEqual(prev, nextSuppliers) ? prev : nextSuppliers,
+    )
+    setCategoryFilter((prev) =>
+      areArraysEqual(prev, nextCategories) ? prev : nextCategories,
+    )
+    setWarehouseFilter((prev) =>
+      areArraysEqual(prev, nextWarehouses) ? prev : nextWarehouses,
+    )
+  }, [
+    JSON.stringify(results.config.filters?.marcas ?? []),
+    JSON.stringify(results.config.filters?.fornecedores ?? []),
+    JSON.stringify(results.config.filters?.categorias ?? []),
+    JSON.stringify(results.config.filters?.depositos ?? []),
+    deriveInitialSelection,
+    allBrandSlugs,
+    allSupplierSlugs,
+    allCategorySlugs,
+    allWarehouseSlugs,
+  ])
+
+  // Sanitize selected filters when the available options change
+  React.useEffect(() => {
+    const brandSet = new Set(brandOptions.map((option) => option.value))
+    setBrandFilter((prev) => {
+      if (prev.length === 0) return prev
+      const sanitized = prev.filter((value) => brandSet.has(value))
+      return sanitized.length === prev.length ? prev : sanitized
+    })
+
+    const supplierSet = new Set(supplierOptions.map((option) => option.value))
+    setSupplierFilter((prev) => {
+      if (prev.length === 0) return prev
+      const sanitized = prev.filter((value) => supplierSet.has(value))
+      return sanitized.length === prev.length ? prev : sanitized
+    })
+
+    const categorySet = new Set(categoryOptions.map((option) => option.value))
+    setCategoryFilter((prev) => {
+      if (prev.length === 0) return prev
+      const sanitized = prev.filter((value) => categorySet.has(value))
+      return sanitized.length === prev.length ? prev : sanitized
+    })
+
+    const warehouseSet = new Set(warehouseOptions.map((option) => option.value))
+    setWarehouseFilter((prev) => {
+      if (prev.length === 0) return prev
+      const sanitized = prev.filter((value) => warehouseSet.has(value))
+      return sanitized.length === prev.length ? prev : sanitized
+    })
+  }, [brandOptions, supplierOptions, categoryOptions, warehouseOptions])
 
   const parseDeliveryBufferDays = React.useCallback((value: string): number | null => {
     if (!value.trim()) return 0
@@ -236,9 +929,52 @@ export function PurchaseListView({
   }, [])
 
 
+  const brandFilterSet = React.useMemo(() => {
+    const set = new Set<string>()
+    brandFilter.forEach((value) => {
+      if (value) {
+        set.add(normalizeMarca(value))
+      }
+    })
+    return set
+  }, [brandFilter])
+
+  const supplierFilterSet = React.useMemo(() => {
+    const set = new Set<string>()
+    supplierFilter.forEach((value) => {
+      const normalized = normalizePlainFilter(value)
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return set
+  }, [supplierFilter])
+
+  const categoryFilterSet = React.useMemo(() => {
+    const set = new Set<string>()
+    categoryFilter.forEach((value) => {
+      const normalized = normalizePlainFilter(value)
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return set
+  }, [categoryFilter])
+
+  const warehouseFilterSet = React.useMemo(() => {
+    const set = new Set<string>()
+    warehouseFilter.forEach((value) => {
+      const normalized = normalizePlainFilter(value)
+      if (normalized) {
+        set.add(normalized)
+      }
+    })
+    return set
+  }, [warehouseFilter])
+
   // Filter products based on search term and filters
   const filteredProducts = React.useMemo(() => {
-    return results.products.filter((product) => {
+    return combinedProducts.filter((product) => {
       // Search filter
       const searchLower = searchTerm.toLowerCase()
       const matchesSearch =
@@ -249,22 +985,31 @@ export function PurchaseListView({
         product.brand.toLowerCase().includes(searchLower)
 
       // Brand filter
-      const matchesBrand =
-        brandFilter === 'all' || product.brand === brandFilter
+      const productBrand = product.brand || ''
+      const productSupplier = product.supplier || ''
+      const productWarehouse = product.warehouse || ''
+      const productCategory = product.category || ''
 
-      // Supplier filter
+      const productBrandSlug = normalizeMarca(productBrand)
+      const productSupplierSlug = normalizePlainFilter(productSupplier)
+      const productWarehouseSlug = normalizePlainFilter(productWarehouse)
+      const productCategorySlug = normalizePlainFilter(productCategory)
+
+      const matchesBrand =
+        !marcaActive || brandFilterSet.has(productBrandSlug)
+
       const matchesSupplier =
-        supplierFilter === 'all' || product.supplier === supplierFilter
+        !fornecedorActive || supplierFilterSet.has(productSupplierSlug)
 
       const matchesWarehouse =
-        warehouseFilter === 'all' || product.warehouse === warehouseFilter
+        !depositoActive || warehouseFilterSet.has(productWarehouseSlug)
 
       const matchesCategory =
-        categoryFilter === 'all' || product.category === categoryFilter
+        !categoriaActive || categoryFilterSet.has(productCategorySlug)
 
       // Critical stock filter
       const matchesCritical =
-        !criticalStockOnly || product.currentCoverageDays < 7
+        true
 
       return (
         matchesSearch &&
@@ -276,18 +1021,25 @@ export function PurchaseListView({
       )
     })
   }, [
-    results.products,
+    combinedProducts,
     searchTerm,
-    brandFilter,
-    supplierFilter,
-    categoryFilter,
-    warehouseFilter,
-    criticalStockOnly,
+    marcaActive,
+    fornecedorActive,
+    categoriaActive,
+    depositoActive,
+    brandFilterSet,
+    supplierFilterSet,
+    categoryFilterSet,
+    warehouseFilterSet,
   ])
 
   // Calculate statistics using filtered dataset
   const statistics = React.useMemo(() => {
-    if (filteredProducts.length === 0) {
+    const selectedFilteredProducts = filteredProducts.filter((product) =>
+      selectedProducts.has(product.sku),
+    )
+
+    if (selectedFilteredProducts.length === 0) {
       return {
         totalProducts: 0,
         totalUnits: 0,
@@ -302,7 +1054,7 @@ export function PurchaseListView({
     let totalValue = 0
     let selectedValue = 0
 
-    for (const product of filteredProducts) {
+    for (const product of selectedFilteredProducts) {
       uniqueSuppliers.add(product.supplier)
 
       const suggested = Math.max(1, Math.ceil(product.suggestedQuantity || 0))
@@ -321,7 +1073,7 @@ export function PurchaseListView({
     }
 
     return {
-      totalProducts: filteredProducts.length,
+      totalProducts: selectedFilteredProducts.length,
       totalUnits,
       totalValue,
       totalSuppliers: uniqueSuppliers.size,
@@ -329,39 +1081,56 @@ export function PurchaseListView({
     }
   }, [filteredProducts, quantities, selectedProducts])
 
-  const brandSelectedCount = brandFilter === 'all' ? filterOptions.brands.length : (brandFilter ? 1 : 0)
-  const supplierSelectedCount = supplierFilter === 'all' ? filterOptions.suppliers.length : (supplierFilter ? 1 : 0)
-  const categorySelectedCount = categoryFilter === 'all' ? filterOptions.categories.length : (categoryFilter ? 1 : 0)
-  const warehouseSelectedCount = warehouseFilter === 'all' ? filterOptions.warehouses.length : (warehouseFilter ? 1 : 0)
+  const formatTriggerLabel = (
+    prefix: string,
+    selectedValues: string[],
+    totalOptions: number,
+  ) => {
+    if (totalOptions === 0) {
+      return `${prefix} (0)`
+    }
+    const selectedCount = selectedValues.length
 
-  const brandTriggerLabel =
-    brandFilter === 'all' || !brandFilter
-      ? 'Marcas (' + brandSelectedCount + ')'
-      : brandFilter + ' (' + brandSelectedCount + ')'
+    if (selectedCount === 0) {
+      return `${prefix} (0)`
+    }
 
-  const supplierTriggerLabel =
-    supplierFilter === 'all' || !supplierFilter
-      ? 'Fornecedores (' + supplierSelectedCount + ')'
-      : supplierFilter + ' (' + supplierSelectedCount + ')'
+    if (selectedCount >= totalOptions) {
+      return `${prefix} (${totalOptions})`
+    }
 
-  const categoryTriggerLabel =
-    categoryFilter === 'all' || !categoryFilter
-      ? 'Categorias (' + categorySelectedCount + ')'
-      : categoryFilter + ' (' + categorySelectedCount + ')'
+    return `${prefix} (${selectedCount})`
+  }
 
-  const warehouseTriggerLabel =
-    warehouseFilter === 'all' || !warehouseFilter
-      ? 'Depósitos (' + warehouseSelectedCount + ')'
-      : warehouseFilter + ' (' + warehouseSelectedCount + ')'
+  const brandTriggerLabel = formatTriggerLabel(
+    'Marcas',
+    brandFilter,
+    marcaTotal,
+  )
+  const supplierTriggerLabel = formatTriggerLabel(
+    'Fornecedores',
+    supplierFilter,
+    fornecedorTotal,
+  )
+  const categoryTriggerLabel = formatTriggerLabel(
+    'Categorias',
+    categoryFilter,
+    categoriaTotal,
+  )
+  const warehouseTriggerLabel = formatTriggerLabel(
+    'Depósitos',
+    warehouseFilter,
+    depositoTotal,
+  )
 
   /**
    * Clear all filters
    */
   const handleClearFilters = () => {
-    setBrandFilter('all')
-    setSupplierFilter('all')
-    setCategoryFilter('all')
-    setWarehouseFilter('all')
+    setBrandFilter([...allBrandSlugs])
+    setSupplierFilter([...allSupplierSlugs])
+    setCategoryFilter([...allCategorySlugs])
+    setWarehouseFilter([...allWarehouseSlugs])
     setCriticalStockOnly(false)
     setSearchTerm('')
   }
@@ -386,7 +1155,9 @@ export function PurchaseListView({
    */
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedProducts(new Set(filteredProducts.map((p) => p.sku)))
+      setSelectedProducts(
+        new Set(combinedProducts.map((product) => product.sku)),
+      )
     } else {
       setSelectedProducts(new Set())
     }
@@ -408,7 +1179,7 @@ export function PurchaseListView({
    */
   const handleExport = (format: 'excel' | 'pdf' = 'excel') => {
     if (format === 'excel') {
-      const csv = convertToCSV(results)
+      const csv = convertToCSV(results, combinedProducts)
       downloadFile(
         csv,
         `necessidade-compra-${new Date().toISOString().split('T')[0]}.csv`,
@@ -431,33 +1202,36 @@ export function PurchaseListView({
    */
   const handleAddProducts = React.useCallback(
     (newProducts: PurchaseRequirementResult[]) => {
-      // Add new products to the results
-      const updatedProducts = [...results.products, ...newProducts]
-      
-      // Update results with new products
-      results.products = updatedProducts
-      results.productsNeedingOrder = updatedProducts.length
-      results.totalProducts = updatedProducts.length
-      
-      // Recalculate total investment
-      results.totalInvestment = updatedProducts.reduce(
-        (sum, product) => sum + (product.estimatedCost || 0),
-        0
-      )
-      
-      // Initialize quantities and selection for new products
-      const newQuantities: Record<string, number> = { ...quantities }
-      const newSelection = new Set(selectedProducts)
-      
-      newProducts.forEach((product) => {
-        newQuantities[product.sku] = Math.ceil(product.suggestedQuantity)
-        newSelection.add(product.sku)
+      setManualProducts((prevManual) => {
+        const existingManual = new Set(prevManual.map((product) => product.sku))
+        const deduped = newProducts.filter(
+          (product) => !existingManual.has(product.sku),
+        )
+
+        if (deduped.length === 0) {
+          return prevManual
+        }
+
+        setQuantities((prev) => {
+          const updated = { ...prev }
+          deduped.forEach((product) => {
+            updated[product.sku] = Math.ceil(product.suggestedQuantity)
+          })
+          return updated
+        })
+
+        setSelectedProducts((prev) => {
+          const updated = new Set(prev)
+          deduped.forEach((product) => {
+            updated.add(product.sku)
+          })
+          return updated
+        })
+
+        return [...prevManual, ...deduped]
       })
-      
-      setQuantities(newQuantities)
-      setSelectedProducts(newSelection)
     },
-    [results, quantities, selectedProducts]
+    [],
   )
 
   /**
@@ -481,8 +1255,8 @@ export function PurchaseListView({
   }
 
   const allSelected =
-    filteredProducts.length > 0 &&
-    filteredProducts.every((p) => selectedProducts.has(p.sku))
+    combinedProducts.length > 0 &&
+    combinedProducts.every((p) => selectedProducts.has(p.sku))
 
   return (
     <div ref={portalContainerRef} className="flex h-full flex-col">
@@ -504,8 +1278,8 @@ export function PurchaseListView({
                 Necessidade de Compra
               </DialogTitle>
               <DialogDescription id="purchase-list-description">
-                {statistics.totalProducts} de {results.productsNeedingOrder}
-                {results.productsNeedingOrder === 1 ? ' produto' : ' produtos'} com
+                {overallProductsNeedingOrder.toLocaleString('pt-BR')} de {totalCatalogProducts.toLocaleString('pt-BR')}
+                {overallProductsNeedingOrder === 1 ? ' produto' : ' produtos'} com
                 necessidade de compra para {results.config.coverageDays} dias de
                 cobertura.
               </DialogDescription>
@@ -542,91 +1316,109 @@ export function PurchaseListView({
         </div>
       </div>
 
-      <div className="px-6 py-3 border-b flex-shrink-0 bg-gray-50">
-        <div className="flex items-center gap-3">
-            {/* Brand Filter */}
-          <Select value={brandFilter} onValueChange={setBrandFilter}>
-            <SelectTrigger className="w-[140px] h-8">
-              {brandTriggerLabel}
-            </SelectTrigger>
-            <SelectContent container={portalContainer}>
-              <SelectItem value="all">
-                Marcas ({filterOptions.brands.length})
-              </SelectItem>
-              {filterOptions.brands.map((brand) => (
-                <SelectItem key={brand} value={brand}>
-                  {brand}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="px-6 py-3.5 border-b flex-shrink-0 bg-gray-50">
+        <div className="flex flex-nowrap items-center gap-3">
+          <div className="flex flex-nowrap items-center gap-3 flex-1">
+            <MultiSelect
+              value={brandFilter}
+              onValueChange={ignoreSelectChange}
+              commitMode="manual"
+              onApply={(values) =>
+                setBrandFilter(mapValuesToNormalizedSet(values, normalizeMarca))
+              }
+              options={brandOptions}
+              label="Marcas"
+              placeholder={brandTriggerLabel}
+              showLabel={false}
+              showAvailableCount
+              searchable
+              portalContainer={portalContainer}
+              optionsMaxHeight={214}
+              highlighted={marcaIsPrimary}
+              size="sm"
+              className="flex-shrink-0 !w-[175px] [&>button]:text-[13px] [&>button]:h-9"
+            />
 
-            {/* Supplier Filter */}
-          <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-            <SelectTrigger className="w-[160px] h-8">
-              {supplierTriggerLabel}
-            </SelectTrigger>
-            <SelectContent container={portalContainer}>
-              <SelectItem value="all">
-                Fornecedores ({filterOptions.suppliers.length})
-              </SelectItem>
-                {filterOptions.suppliers.map((supplier) => (
-                  <SelectItem key={supplier} value={supplier}>
-                    {supplier}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              value={supplierFilter}
+              onValueChange={ignoreSelectChange}
+              commitMode="manual"
+              onApply={(values) =>
+                setSupplierFilter(
+                  mapValuesToNormalizedSet(values, normalizePlainFilter),
+                )
+              }
+              options={supplierOptions}
+              label="Fornecedores"
+              placeholder={supplierTriggerLabel}
+              showLabel={false}
+              showAvailableCount
+              searchable
+              portalContainer={portalContainer}
+              optionsMaxHeight={214}
+              highlighted={fornecedorIsPrimary}
+              size="sm"
+              className="flex-shrink-0 !w-[175px] [&>button]:text-[13px] [&>button]:h-9"
+            />
 
-            {/* Category Filter - placeholder for now */}
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[155px] h-8">
-              {categoryTriggerLabel}
-            </SelectTrigger>
-            <SelectContent container={portalContainer}>
-              <SelectItem value="all">
-                Categorias ({filterOptions.categories.length})
-              </SelectItem>
-              {filterOptions.categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <MultiSelect
+              value={categoryFilter}
+              onValueChange={ignoreSelectChange}
+              commitMode="manual"
+              onApply={(values) =>
+                setCategoryFilter(
+                  mapValuesToNormalizedSet(values, normalizePlainFilter),
+                )
+              }
+              options={categoryOptions}
+              label="Categorias"
+              placeholder={categoryTriggerLabel}
+              showLabel={false}
+              showAvailableCount
+              searchable
+              portalContainer={portalContainer}
+              optionsMaxHeight={214}
+              highlighted={categoriaIsPrimary}
+              size="sm"
+              className="flex-shrink-0 !w-[175px] [&>button]:text-[13px] [&>button]:h-9"
+            />
 
-          {/* Warehouse Filter */}
-          <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-            <SelectTrigger className="w-[145px] h-8">
-              {warehouseTriggerLabel}
-            </SelectTrigger>
-            <SelectContent container={portalContainer}>
-              <SelectItem value="all">
-                Depósitos ({filterOptions.warehouses.length})
-              </SelectItem>
-                {filterOptions.warehouses.map((warehouse) => (
-                  <SelectItem key={warehouse} value={warehouse}>
-                    {warehouse}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              value={warehouseFilter}
+              onValueChange={ignoreSelectChange}
+              commitMode="manual"
+              onApply={(values) =>
+                setWarehouseFilter(
+                  mapValuesToNormalizedSet(values, normalizePlainFilter),
+                )
+              }
+              options={warehouseOptions}
+              label="Depósitos"
+              placeholder={warehouseTriggerLabel}
+              showLabel={false}
+              showAvailableCount
+              searchable
+              portalContainer={portalContainer}
+              optionsMaxHeight={214}
+              highlighted={depositoIsPrimary}
+              size="sm"
+              className="flex-shrink-0 !w-[175px] [&>button]:text-[13px] [&>button]:h-9"
+            />
 
-            {/* Delivery Protection Popover */}
             <Popover modal={false}>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 min-w-[140px]"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 min-w-[145px] whitespace-nowrap flex-shrink-0 text-[13px]"
                 >
-                  <Clock className="h-3.5 w-3.5 mr-1.5" />
+                  <Clock className="h-4 w-4 mr-2" />
                   {bufferEnabled ? `+${bufferDaysInput || 0} dias entrega` : 'Prazo Entrega'}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent 
-                className="w-72" 
-                align="start" 
+              <PopoverContent
+                className="w-72"
+                align="start"
                 sideOffset={5}
                 container={portalContainer ?? undefined}
                 onOpenAutoFocus={(e) => {
@@ -648,8 +1440,8 @@ export function PurchaseListView({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium">Prazo de Entrega</label>
-                    <Switch 
-                      checked={bufferEnabled} 
+                    <Switch
+                      checked={bufferEnabled}
                       onCheckedChange={(checked) => {
                         handleBufferToggle(checked)
                         if (checked) {
@@ -692,60 +1484,52 @@ export function PurchaseListView({
                 </div>
               </PopoverContent>
             </Popover>
+          </div>
 
-            {/* Critical Stock Button */}
-            <Button
-              size="sm"
-              variant={criticalStockOnly ? 'destructive' : 'outline'}
-              onClick={() => setCriticalStockOnly(!criticalStockOnly)}
-              className="h-8"
-            >
-              <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
-              Estoque Crítico
-            </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleClearFilters}
+            className="h-9 whitespace-nowrap flex-shrink-0 px-5 text-[13px] font-medium"
+          >
+            Limpar filtros
+          </Button>
+        </div>
+      </div>
 
-            {/* Clear Filters Button */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleClearFilters}
-              className="h-8"
-            >
-              Limpar filtros
-            </Button>
+      {/* Search and Actions Bar */}
+      <div className="px-6 py-3 border-b flex-shrink-0">
+        <div className="flex items-center gap-3">
+          {/* Add Product Button */}
+          <Button
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => setAddProductModalOpen(true)}
+            disabled={remainingProductsCount === 0}
+          >
+            <Package className="h-4 w-4 mr-1.5" />
+            {remainingProductsCount > 0
+              ? `Add Produto (${remainingProductsCount})`
+              : 'Todos adicionados'}
+          </Button>
+
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por SKU, nome, marca ou fornecedor..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 h-8"
+            />
           </div>
         </div>
+      </div>
 
-        {/* Search and Actions Bar */}
-        <div className="px-6 py-3 border-b flex-shrink-0">
-          <div className="flex items-center gap-3">
-            {/* Add Product Button */}
-            <Button
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => setAddProductModalOpen(true)}
-            >
-              <Package className="h-4 w-4 mr-1.5" />
-              Add Produto
-            </Button>
-
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por SKU, nome, marca ou fornecedor..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-8"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Statistics */}
-        {statistics && (
-          <div className="px-6 py-4 bg-white border-b flex-shrink-0">
-            <div className="flex items-center justify-around">
+      {/* Statistics */}
+      {statistics && (
+        <div className="px-6 py-4 bg-white border-b flex-shrink-0">
+          <div className="flex items-center justify-around">
               {/* Products */}
               <div className="text-center">
                 <div className="flex items-center gap-2 text-muted-foreground justify-center">
@@ -753,10 +1537,10 @@ export function PurchaseListView({
                   <span className="text-sm">Produtos</span>
                 </div>
                 <div className="text-2xl font-bold mt-1">
-                  {statistics.totalProducts}
+                  {overallProductsNeedingOrder.toLocaleString('pt-BR')}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  de {results.totalProducts}
+                  de {totalCatalogProducts.toLocaleString('pt-BR')} produtos no catálogo
                 </div>
               </div>
 
@@ -808,10 +1592,10 @@ export function PurchaseListView({
                 <div className="text-xs text-muted-foreground">diferentes</div>
               </div>
             </div>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Products List */}
+      {/* Products List */}
       <DialogMain className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-gray-50/30">
           <div className="space-y-3">
             {/* Product Rows */}
@@ -835,21 +1619,27 @@ export function PurchaseListView({
                 Nenhum produto encontrado
               </div>
             )}
-          </div>
-        </DialogMain>
+        </div>
+      </DialogMain>
 
-        {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
+      {/* Footer */}
+      <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                onClick={() => setSelectedProducts(new Set())}
-                disabled={selectedProducts.size === 0}
+                onClick={() =>
+                  allSelected
+                    ? setSelectedProducts(new Set())
+                    : setSelectedProducts(
+                        new Set(combinedProducts.map((product) => product.sku)),
+                      )
+                }
+                disabled={combinedProducts.length === 0}
                 className="text-gray-600"
               >
                 <X className="h-4 w-4 mr-2" />
-                Desmarcar Todas
+                {allSelected ? 'Desmarcar Todas' : 'Marcar Todas'}
               </Button>
               <span className="text-sm text-muted-foreground">
                 {selectedProducts.size} produtos selecionados
@@ -872,20 +1662,21 @@ export function PurchaseListView({
                 Gerar Ordem de Compra ({selectedProducts.size})
               </Button>
             </div>
-          </div>
-        </DialogFooter>
-        
-        {/* Add Product Modal */}
-        <AddProductModal
-          open={addProductModalOpen}
-          onOpenChange={setAddProductModalOpen}
-          existingProducts={results.products}
-          onAddProducts={handleAddProducts}
-          availableProducts={catalogProducts}
-        />
+        </div>
+      </DialogFooter>
+      
+      {/* Add Product Modal */}
+      <AddProductModal
+        open={addProductModalOpen}
+        onOpenChange={setAddProductModalOpen}
+        existingProducts={combinedProducts}
+        onAddProducts={handleAddProducts}
+        availableProducts={availableManualProducts}
+      />
     </div>
   )
 }
+
 
 /**
  * Product row component - Redesigned with vertical layout
@@ -1039,7 +1830,10 @@ function ProductRow({
 /**
  * Convert results to CSV
  */
-function convertToCSV(results: PurchaseBatchResult): string {
+function convertToCSV(
+  results: PurchaseBatchResult,
+  products: PurchaseRequirementResult[],
+): string {
   const headers = [
     'SKU',
     'Nome',
@@ -1054,7 +1848,7 @@ function convertToCSV(results: PurchaseBatchResult): string {
     'Alertas',
   ]
 
-  const rows = results.products.map((p) => [
+  const rows = products.map((p) => [
     p.sku,
     p.name,
     p.brand,
@@ -1093,4 +1887,3 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 }
-

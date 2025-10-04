@@ -11,7 +11,7 @@
  *
  * To modify the client API, update your controller files instead.
  *
- * Generated: 2025-09-27T03:43:53.346Z
+ * Generated: 2025-09-30T05:40:29.354Z
  * Framework: nextjs
  * Output: src/
  */
@@ -4141,7 +4141,13 @@ export const AppRouterSchema = {
                 "in": "query",
                 "required": true,
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "help",
+                    "blog",
+                    "docs",
+                    "update"
+                  ]
                 }
               },
               {
@@ -4312,7 +4318,13 @@ export const AppRouterSchema = {
                 "in": "query",
                 "required": true,
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "help",
+                    "blog",
+                    "docs",
+                    "update"
+                  ]
                 }
               },
               {
@@ -5185,36 +5197,6 @@ export const AppRouterSchema = {
               "notification"
             ],
             "parameters": [],
-            "responses": {
-              "200": {
-                "description": "Success",
-                "content": {
-                  "application/json": {
-                    "schema": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "/notification/preferences": {
-          "patch": {
-            "summary": "Update notification preferences",
-            "operationId": "Update Preferences",
-            "tags": [
-              "notification"
-            ],
-            "parameters": [],
-            "requestBody": {
-              "required": true,
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/NotificationUpdate PreferencesBody"
-                  }
-                }
-              }
-            },
             "responses": {
               "200": {
                 "description": "Success",
@@ -6343,7 +6325,13 @@ export const AppRouterSchema = {
             "type": "object",
             "properties": {
               "type": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "help",
+                  "blog",
+                  "docs",
+                  "update"
+                ]
               },
               "slug": {
                 "type": "string"
@@ -6421,7 +6409,13 @@ export const AppRouterSchema = {
             "type": "object",
             "properties": {
               "type": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "help",
+                  "blog",
+                  "docs",
+                  "update"
+                ]
               },
               "slug": {
                 "type": "string"
@@ -6713,31 +6707,6 @@ export const AppRouterSchema = {
                 ]
               }
             },
-            "additionalProperties": false
-          },
-          "NotificationUpdate PreferencesBody": {
-            "type": "object",
-            "properties": {
-              "preferences": {
-                "type": "object",
-                "properties": {
-                  "inApp": {
-                    "type": "boolean"
-                  },
-                  "email": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "inApp",
-                  "email"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "preferences"
-            ],
             "additionalProperties": false
           },
           "SubmissionListSubmissionsQuery": {

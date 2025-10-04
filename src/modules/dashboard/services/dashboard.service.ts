@@ -70,7 +70,7 @@ export class DashboardService {
   private repository: DashboardRepository
 
   constructor() {
-    this.repository = new DashboardRepository(prisma)
+    this.repository = new DashboardRepository()
   }
 
   /**
@@ -130,7 +130,7 @@ export class DashboardService {
         return createEmptyMetrics('Configure o ID da organização')
       }
 
-      const metrics = await this.repository.getSalesMetrics(
+      const metrics = await this.repository.getMetrics(
         organizationId,
         period,
       )

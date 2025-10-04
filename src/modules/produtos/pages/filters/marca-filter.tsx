@@ -54,7 +54,7 @@ export function MarcaFilter({
         <SelectTrigger className="w-[180px] bg-white border-gray-200">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="max-h-[300px]">
+        <SelectContent>
           {marcaOptions.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}

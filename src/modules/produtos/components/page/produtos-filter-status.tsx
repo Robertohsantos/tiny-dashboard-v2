@@ -8,6 +8,7 @@
 import * as React from 'react'
 import { useProductFilters } from '@/modules/produtos/contexts/filter-context'
 import { Badge } from '@/components/ui/badge'
+import { FilterType } from '@/modules/produtos/constants/produtos-filters.constants'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Package, Filter, TrendingDown } from 'lucide-react'
 import { cn } from '@/modules/ui'
@@ -51,6 +52,7 @@ export function ProdutosFilterStatus({
     filters,
     resetFilters,
     defaultFilters,
+    primaryFilter,
   } = useProductFilters()
 
   const defaultDepositos = defaultFilters.deposito ?? []
@@ -157,6 +159,16 @@ export function ProdutosFilterStatus({
 
   const getFilterDescription = () => {
     const parts: string[] = []
+
+    if (primaryFilter) {
+      const primaryName =
+        primaryFilter === FilterType.DEPOSITO
+          ? 'Depósito'
+          : primaryFilter === FilterType.MARCA
+            ? 'Marca'
+            : 'Fornecedor'
+      parts.push('Filtro base: ' + primaryName)
+    }
 
     if (hasSpecificSelection(filters.deposito, defaultDepositos)) {
       const description = formatSelection(

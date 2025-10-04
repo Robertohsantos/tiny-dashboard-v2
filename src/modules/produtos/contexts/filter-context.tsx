@@ -137,6 +137,10 @@ interface ProductFiltersContextValue {
   hasActiveFilters: boolean
   /** Get active filter count */
   activeFilterCount: number
+  /** First filter applied (Excel style filtro pai) */
+  primaryFilter: FilterType | null
+  /** Ordered list of active filters based on activation sequence */
+  activeFiltersOrder: FilterType[]
   /** Available marcas for filtering */
   availableMarcas: MarcaId[]
   /** Default filter values */
@@ -304,6 +308,15 @@ export function ProductFiltersProvider({
 
   const [state, dispatch] = React.useReducer(filterReducer, initialState)
 
+  const activationOrderRef = React.useRef<Record<FilterType, number>>({
+    [FilterType.DEPOSITO]: 0,
+    [FilterType.MARCA]: 0,
+    [FilterType.FORNECEDOR]: 0,
+  })
+  const activationCounterRef = React.useRef(0)
+  const [primaryFilter, setPrimaryFilter] = React.useState<FilterType | null>(null)
+  const [activeFiltersOrder, setActiveFiltersOrder] = React.useState<FilterType[]>([])
+
   // Debounce timer ref
   const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null)
 
@@ -326,6 +339,76 @@ export function ProductFiltersProvider({
       }
     }
   }, [availableMarcas, state.marca])
+
+  React.useEffect(() => {
+    const currentOrder = activationOrderRef.current
+    const activeStates: Array<{ type: FilterType; active: boolean }> = [
+      {
+        type: FilterType.DEPOSITO,
+        active: isFilterActive(state.deposito, FilterType.DEPOSITO),
+      },
+      {
+        type: FilterType.MARCA,
+        active: isFilterActive(
+          state.marca,
+          FilterType.MARCA,
+          availableMarcas.length,
+        ),
+      },
+      {
+        type: FilterType.FORNECEDOR,
+        active: isFilterActive(state.fornecedor, FilterType.FORNECEDOR),
+      },
+    ]
+
+    let updated = false
+
+    for (const { type, active } of activeStates) {
+      const current = currentOrder[type] ?? 0
+      if (active) {
+        if (current === 0) {
+          activationCounterRef.current += 1
+          currentOrder[type] = activationCounterRef.current
+          updated = true
+        }
+      } else if (current !== 0) {
+        currentOrder[type] = 0
+        updated = true
+      }
+    }
+
+    const sorted = Object.entries(currentOrder)
+      .filter(([, order]) => typeof order === 'number' && Number(order) > 0)
+      .sort((a, b) => Number(a[1]) - Number(b[1]))
+      .map(([key]) => key as FilterType)
+
+    const orderChanged = (
+      sorted.length !== activeFiltersOrder.length ||
+      sorted.some((type, index) => activeFiltersOrder[index] !== type)
+    )
+
+    if (updated || orderChanged) {
+      if (orderChanged) {
+        setActiveFiltersOrder(sorted)
+      }
+
+      const nextPrimary = sorted[0] ?? null
+      if (nextPrimary !== primaryFilter) {
+        setPrimaryFilter(nextPrimary)
+      } else if (!nextPrimary && primaryFilter) {
+        setPrimaryFilter(null)
+      }
+    } else if (!sorted.length && primaryFilter) {
+      setPrimaryFilter(null)
+    }
+  }, [
+    state.deposito,
+    state.marca,
+    state.fornecedor,
+    availableMarcas.length,
+    activeFiltersOrder,
+    primaryFilter,
+  ])
 
   // Handle filter changes with optional debounce
   React.useEffect(() => {
@@ -401,6 +484,14 @@ export function ProductFiltersProvider({
   }, [])
 
   const resetFilters = React.useCallback(() => {
+    activationOrderRef.current = {
+      [FilterType.DEPOSITO]: 0,
+      [FilterType.MARCA]: 0,
+      [FilterType.FORNECEDOR]: 0,
+    }
+    activationCounterRef.current = 0
+    setActiveFiltersOrder([])
+    setPrimaryFilter(null)
     dispatch({ type: 'RESET_FILTERS', payload: initialStateRef.current })
   }, [])
 
@@ -418,6 +509,8 @@ export function ProductFiltersProvider({
       resetFilters,
       hasActiveFilters,
       activeFilterCount,
+      primaryFilter,
+      activeFiltersOrder,
       availableMarcas,
       defaultFilters: initialStateRef.current,
     }),
@@ -433,6 +526,8 @@ export function ProductFiltersProvider({
       resetFilters,
       hasActiveFilters,
       activeFilterCount,
+      primaryFilter,
+      activeFiltersOrder,
       availableMarcas,
       initialStateRef.current,
     ],

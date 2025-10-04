@@ -75,23 +75,31 @@ export function isAllSelected(
   const count = selectedItems.length
 
   switch (filterType) {
-    case FilterType.DEPOSITO:
-      return (
-        count === 0 ||
-        (FILTER_TOTALS.DEPOSITOS > 0 && count === FILTER_TOTALS.DEPOSITOS)
-      )
-
-    case FilterType.FORNECEDOR:
-      return (
-        count === 0 ||
-        (FILTER_TOTALS.FORNECEDORES > 0 && count === FILTER_TOTALS.FORNECEDORES)
-      )
-
-    case FilterType.MARCA:
-      if (typeof totalItems !== 'number' || totalItems === 0) {
-        return count === 0
+    case FilterType.DEPOSITO: {
+      const total = FILTER_TOTALS.DEPOSITOS
+      if (total <= 0) {
+        return true
       }
-      return count === 0 || count === totalItems
+      return count === total
+    }
+
+    case FilterType.FORNECEDOR: {
+      const total = FILTER_TOTALS.FORNECEDORES
+      if (total <= 0) {
+        return true
+      }
+      return count === total
+    }
+
+    case FilterType.MARCA: {
+      if (typeof totalItems === 'number') {
+        if (totalItems <= 0) {
+          return true
+        }
+        return count === totalItems
+      }
+      return false
+    }
 
     default:
       return false

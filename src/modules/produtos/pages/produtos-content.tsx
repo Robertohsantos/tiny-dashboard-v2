@@ -26,6 +26,11 @@ import {
   usePurchaseRequirementModal,
 } from '@/modules/produtos/contexts/purchase-requirement-context'
 import { PurchaseRequirementModal } from '@/modules/produtos/components/shared/modals/purchase-requirement-modal'
+import {
+  NoMovementProvider,
+  useNoMovementModal,
+} from '@/modules/produtos/contexts/no-movement-context'
+import { NoMovementModal } from '@/modules/produtos/components/modals/no-movement-modal'
 import { useAuth } from '@/@saas-boilerplate/features/auth/presentation/contexts/auth.context'
 
 interface ProdutosContentProps {
@@ -39,10 +44,23 @@ interface ProdutosContentProps {
 function ProdutosContentInner({ initialData }: ProdutosContentProps) {
   const { session } = useAuth()
   const organizationId = session.organization?.id
-  // Get modal state
-  const { isOpen, close } = usePurchaseRequirementModal()
+  // Get modal state for purchase requirement
+  const { isOpen: isPurchaseOpen, close: closePurchase } = usePurchaseRequirementModal()
+  // Get modal state for no movement
+  const { isOpen: isNoMovementOpen, close: closeNoMovement } = useNoMovementModal()
   // Get filter values from unified context
   const { filters, defaultFilters } = useProductFilters()
+
+  // Guarantee the page is always interactive when it mounts.
+  // Floating UI can leave pointer-events="none" on the body when a popover
+  // or dropdown is unmounted during navigation, which blocks the first click
+  // on this page. Reset it proactively.
+  React.useEffect(() => {
+    document.body.style.pointerEvents = ''
+    return () => {
+      document.body.style.pointerEvents = ''
+    }
+  }, [])
 
   React.useEffect(() => {
     if (initialData?.produtos && initialData.produtos.length > 0) {
@@ -288,8 +306,16 @@ function ProdutosContentInner({ initialData }: ProdutosContentProps) {
 
       {/* Purchase Requirement Modal */}
       <PurchaseRequirementModal
-        open={isOpen}
-        onOpenChange={close}
+        open={isPurchaseOpen}
+        onOpenChange={closePurchase}
+        organizationId={organizationId}
+        products={productsForModal}
+      />
+
+      {/* No Movement Modal */}
+      <NoMovementModal
+        open={isNoMovementOpen}
+        onOpenChange={closeNoMovement}
         organizationId={organizationId}
         products={productsForModal}
       />
@@ -309,7 +335,9 @@ function ProdutosContentInner({ initialData }: ProdutosContentProps) {
 export function ProdutosContent(props: ProdutosContentProps) {
   return (
     <PurchaseRequirementProvider>
-      <ProdutosContentInner {...props} />
+      <NoMovementProvider>
+        <ProdutosContentInner {...props} />
+      </NoMovementProvider>
     </PurchaseRequirementProvider>
   )
 }

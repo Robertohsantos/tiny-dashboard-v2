@@ -118,21 +118,21 @@ describe('produtos-transforms.utils', () => {
 
   describe('countActiveFilters', () => {
     it('should count active filters correctly', () => {
-      const filters1 = {
+      const filtersOnlySome = {
         deposito: ['loja-01'],
         marca: ['nike'],
         fornecedor: [],
       }
-      expect(countActiveFilters(filters1, 5)).toBe(2) // deposito and marca are active
+      expect(countActiveFilters(filtersOnlySome, 5)).toBe(2) // deposito and marca are active
 
-      const filters2 = {
+      const filtersNoneSelected = {
         deposito: [],
         marca: [],
         fornecedor: [],
       }
-      expect(countActiveFilters(filters2, 5)).toBe(0) // no active filters
+      expect(countActiveFilters(filtersNoneSelected, 5)).toBe(3) // zero selections keep filters active
 
-      const filters3 = {
+      const filtersAllSelected = {
         deposito: ['loja-01', 'loja-02', 'cd-distribuicao'],
         marca: ['nike', 'adidas', 'puma', 'reebok', 'fila'],
         fornecedor: [
@@ -142,7 +142,7 @@ describe('produtos-transforms.utils', () => {
           'atacado-express',
         ],
       }
-      expect(countActiveFilters(filters3, 5)).toBe(0) // all filters show all items
+      expect(countActiveFilters(filtersAllSelected, 5)).toBe(0) // matching totals disables activity
     })
   })
 

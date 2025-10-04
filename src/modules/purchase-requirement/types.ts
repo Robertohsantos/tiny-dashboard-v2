@@ -42,6 +42,15 @@ export interface PurchaseRequirementConfig {
   // Display options
   showOnlyNeeded: boolean // Show only SKUs that need ordering
   consolidateBySupplier: boolean // Group results by supplier
+
+  // UI metadata (nao enviado ao backend)
+  filterTotals?: {
+    depositos: number
+    marcas: number
+    fornecedores: number
+    categorias: number
+  }
+  primaryFilter?: 'deposito' | 'marca' | 'fornecedor' | 'categoria'
 }
 
 /**

@@ -79,18 +79,36 @@ export function PurchaseRequirementModal({
     }
   }, [open])
 
+  const hasInitializedSessionRef = React.useRef(false)
+
   React.useEffect(() => {
     if (!open) {
+      hasInitializedSessionRef.current = false
       return
     }
 
+    if (hasInitializedSessionRef.current) {
+      return
+    }
+
+    hasInitializedSessionRef.current = true
+
     if (savedConfig) {
-      setActiveConfig(savedConfig)
+      setActiveConfig({
+        coverageDays: savedConfig.coverageDays,
+        leadTimeDays: savedConfig.leadTimeDays,
+        includeStockReserve: savedConfig.includeStockReserve,
+        stockReserveDays: savedConfig.stockReserveDays,
+        includeDeliveryBuffer: savedConfig.includeDeliveryBuffer,
+        deliveryBufferDays: savedConfig.deliveryBufferDays,
+      })
+    } else {
+      setActiveConfig(null)
     }
   }, [open, savedConfig])
 
   const initialFormFilters = React.useMemo(() => {
-    const filters = (activeConfig ?? savedConfig)?.filters
+    const filters = activeConfig?.filters
     if (!filters) {
       return undefined
     }
@@ -103,13 +121,17 @@ export function PurchaseRequirementModal({
       marca: clone(filters.marcas),
       fornecedor: clone(filters.fornecedores),
     }
-  }, [activeConfig, savedConfig])
+  }, [activeConfig])
 
   /**
    * Handle form submission
    */
   const handleCalculate = React.useCallback(
-    async (config: Partial<PurchaseRequirementConfig>) => {
+    async (
+      config: Partial<PurchaseRequirementConfig>,
+      options?: { persist?: boolean },
+    ) => {
+      const shouldPersist = options?.persist !== false
       const effectiveOrganizationId =
         organizationId || (ENV_CONFIG.useMockData ? 'mock-org-123' : null)
 
@@ -127,9 +149,11 @@ export function PurchaseRequirementModal({
       }
 
       try {
+        const { filterTotals, primaryFilter, ...configWithoutMetadata } = config
+
         const mergedFilters = {
           ...(activeConfig?.filters ?? {}),
-          ...(config.filters ?? {}),
+          ...(configWithoutMetadata.filters ?? {}),
         }
 
         const productSkus = products
@@ -163,21 +187,36 @@ export function PurchaseRequirementModal({
           ? Math.max(0, rawDeliveryBufferDays)
           : 0
 
-        const requestFilters: PurchaseRequirementConfig['filters'] = {
+        const backendFilters: PurchaseRequirementConfig['filters'] = {
           ...sanitizedFilters,
         }
+        delete backendFilters.marcas
+        delete backendFilters.fornecedores
+        delete backendFilters.depositos
+        delete backendFilters.categorias
 
         const persistedFilters: PurchaseRequirementConfig['filters'] = {
-          ...requestFilters,
+          ...sanitizedFilters,
         }
-
         delete persistedFilters.skus
 
+        const effectiveFilterTotals =
+          filterTotals ?? activeConfig?.filterTotals ?? savedConfig?.filterTotals
+        const effectivePrimaryFilter =
+          primaryFilter ?? activeConfig?.primaryFilter ?? savedConfig?.primaryFilter
+
         const requestConfig: Partial<PurchaseRequirementConfig> = {
-          ...config,
+          ...configWithoutMetadata,
           includeDeliveryBuffer,
           deliveryBufferDays: normalizedDeliveryBufferDays,
-          filters: requestFilters,
+          filters: backendFilters,
+        }
+
+        if (effectiveFilterTotals) {
+          requestConfig.filterTotals = effectiveFilterTotals
+        }
+        if (effectivePrimaryFilter) {
+          requestConfig.primaryFilter = effectivePrimaryFilter
         }
 
         const result = await calculateRequirement({
@@ -186,15 +225,37 @@ export function PurchaseRequirementModal({
         })
 
         if (result) {
+          const resultWithMetadata: PurchaseBatchResult = {
+            ...result,
+            config: {
+              ...result.config,
+              filters: persistedFilters,
+              filterTotals: requestConfig.filterTotals,
+              primaryFilter: requestConfig.primaryFilter,
+            },
+          }
+
           const persistedConfig: Partial<PurchaseRequirementConfig> = {
             ...requestConfig,
             filters: persistedFilters,
           }
 
-          setActiveConfig(requestConfig)
-          saveConfig(persistedConfig)
-          setResults(result)
-          setView('list')
+          if (shouldPersist) {
+            setActiveConfig(persistedConfig)
+            const settingsToPersist: Partial<PurchaseRequirementConfig> = {
+              coverageDays: requestConfig.coverageDays,
+              leadTimeDays: requestConfig.leadTimeDays,
+              includeStockReserve: requestConfig.includeStockReserve,
+              stockReserveDays: requestConfig.stockReserveDays,
+              includeDeliveryBuffer: requestConfig.includeDeliveryBuffer,
+              deliveryBufferDays: requestConfig.deliveryBufferDays,
+            }
+            saveConfig(settingsToPersist)
+          }
+          setResults(resultWithMetadata)
+          if (shouldPersist) {
+            setView('list')
+          }
 
           toast({
             title: 'Cálculo concluído',
@@ -234,7 +295,7 @@ export function PurchaseRequirementModal({
         filters: mergedFilters,
       }
 
-      await handleCalculate(nextConfig)
+      await handleCalculate(nextConfig, { persist: false })
     },
     [activeConfig, handleCalculate],
   )
@@ -310,7 +371,7 @@ export function PurchaseRequirementModal({
 
               <div className="space-y-6">
                 <PurchaseRequirementForm
-                  onSubmit={handleCalculate}
+                  onSubmit={(config) => handleCalculate(config, { persist: true })}
                   isLoading={isCalculating}
                   initialFilters={initialFormFilters}
                   products={products}
@@ -354,6 +415,9 @@ export function PurchaseRequirementModal({
               onConfigChange={handleConfigUpdate}
               isLoading={isCalculating}
               catalogProducts={products}
+              initialFilters={activeConfig?.filters ?? results.config.filters}
+              filterTotals={results.config.filterTotals}
+              primaryFilter={results.config.primaryFilter}
             />
           )
         )}

@@ -88,7 +88,9 @@
       "get": {
         "summary": "List user linked accounts",
         "operationId": "listUserAccounts",
-        "tags": ["Accounts"],
+        "tags": [
+          "Accounts"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -104,7 +106,9 @@
       "post": {
         "summary": "Link external account",
         "operationId": "linkAccount",
-        "tags": ["Accounts"],
+        "tags": [
+          "Accounts"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -130,7 +134,9 @@
       "delete": {
         "summary": "Unlink external account",
         "operationId": "unlinkAccount",
-        "tags": ["Accounts"],
+        "tags": [
+          "Accounts"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -158,7 +164,9 @@
       "get": {
         "summary": "List organization API keys",
         "operationId": "listApiKeys",
-        "tags": ["API Keys"],
+        "tags": [
+          "API Keys"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -174,7 +182,9 @@
       "post": {
         "summary": "Create new API key",
         "operationId": "createApiKey",
-        "tags": ["API Keys"],
+        "tags": [
+          "API Keys"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -202,7 +212,9 @@
       "get": {
         "summary": "Get API key by ID",
         "operationId": "getApiKey",
-        "tags": ["API Keys"],
+        "tags": [
+          "API Keys"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -227,7 +239,9 @@
       "put": {
         "summary": "Update existing API key",
         "operationId": "updateApiKey",
-        "tags": ["API Keys"],
+        "tags": [
+          "API Keys"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -262,7 +276,9 @@
       "delete": {
         "summary": "Delete API key",
         "operationId": "deleteApiKey",
-        "tags": ["API Keys"],
+        "tags": [
+          "API Keys"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -289,7 +305,9 @@
       "get": {
         "summary": "List available providers",
         "operationId": "getActiveSocialProvider",
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -307,7 +325,9 @@
       "post": {
         "summary": "Sign in with OAuth provider",
         "operationId": "signInWithProvider",
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -335,7 +355,9 @@
       "post": {
         "summary": "Sign in with OTP code",
         "operationId": "signInWithOtp",
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -363,7 +385,9 @@
       "post": {
         "summary": "Send OTP verification code",
         "operationId": "sendOtpCode",
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -391,7 +415,9 @@
       "post": {
         "summary": "Sign out current user",
         "operationId": "signOut",
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -409,7 +435,9 @@
       "get": {
         "summary": "Get current user session",
         "operationId": "getCurrentSession",
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -427,7 +455,9 @@
       "post": {
         "summary": "Set active organization",
         "operationId": "setActiveOrganization",
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -455,7 +485,9 @@
       "get": {
         "summary": "Get invitation details",
         "operationId": "getInvitation",
-        "tags": ["Invitation"],
+        "tags": [
+          "Invitation"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -482,7 +514,9 @@
       "post": {
         "summary": "Create new invitation",
         "operationId": "createInvitation",
-        "tags": ["Invitation"],
+        "tags": [
+          "Invitation"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -510,7 +544,9 @@
       "post": {
         "summary": "Accept invitation",
         "operationId": "acceptInvitation",
-        "tags": ["Invitation"],
+        "tags": [
+          "Invitation"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -537,7 +573,9 @@
       "post": {
         "summary": "Reject invitation",
         "operationId": "rejectInvitation",
-        "tags": ["Invitation"],
+        "tags": [
+          "Invitation"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -564,7 +602,9 @@
       "delete": {
         "summary": "Cancel invitation",
         "operationId": "cancelInvitation",
-        "tags": ["Invitation"],
+        "tags": [
+          "Invitation"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -591,7 +631,9 @@
       "get": {
         "summary": "Search organization members",
         "operationId": "searchMemberships",
-        "tags": ["Membership"],
+        "tags": [
+          "Membership"
+        ],
         "parameters": [
           {
             "name": "page",
@@ -623,7 +665,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["asc", "desc"]
+              "enum": [
+                "asc",
+                "desc"
+              ]
             }
           },
           {
@@ -651,7 +696,9 @@
       "put": {
         "summary": "Update member role",
         "operationId": "updateMembership",
-        "tags": ["Membership"],
+        "tags": [
+          "Membership"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -686,7 +733,9 @@
       "delete": {
         "summary": "Remove member",
         "operationId": "deleteMembership",
-        "tags": ["Membership"],
+        "tags": [
+          "Membership"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -713,7 +762,9 @@
       "post": {
         "summary": "Create new organization",
         "operationId": "createOrganization",
-        "tags": ["Organization"],
+        "tags": [
+          "Organization"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -739,7 +790,9 @@
       "put": {
         "summary": "Update organization",
         "operationId": "updateOrganization",
-        "tags": ["Organization"],
+        "tags": [
+          "Organization"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -767,7 +820,9 @@
       "get": {
         "summary": "Get organization stats",
         "operationId": "getOrganizationStats",
-        "tags": ["Organization"],
+        "tags": [
+          "Organization"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -785,7 +840,9 @@
       "post": {
         "summary": "Verify organization",
         "operationId": "verifyOrganization",
-        "tags": ["Organization"],
+        "tags": [
+          "Organization"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -813,7 +870,9 @@
       "delete": {
         "summary": "Delete organization",
         "operationId": "deleteOrganization",
-        "tags": ["Organization"],
+        "tags": [
+          "Organization"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -840,7 +899,9 @@
       "get": {
         "summary": "Get organization by slug",
         "operationId": "getOrganizationBySlug",
-        "tags": ["Organization"],
+        "tags": [
+          "Organization"
+        ],
         "parameters": [
           {
             "name": "slug",
@@ -867,7 +928,9 @@
       "get": {
         "summary": "List available integrations",
         "operationId": "listIntegrations",
-        "tags": ["Integration"],
+        "tags": [
+          "Integration"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -885,7 +948,9 @@
       "get": {
         "summary": "Get integration by ID",
         "operationId": "getIntegration",
-        "tags": ["Integration"],
+        "tags": [
+          "Integration"
+        ],
         "parameters": [
           {
             "name": "slug",
@@ -910,7 +975,9 @@
       "put": {
         "summary": "Update integration config",
         "operationId": "updateIntegration",
-        "tags": ["Integration"],
+        "tags": [
+          "Integration"
+        ],
         "parameters": [
           {
             "name": "slug",
@@ -947,7 +1014,9 @@
       "post": {
         "summary": "Install integration",
         "operationId": "installIntegration",
-        "tags": ["Integration"],
+        "tags": [
+          "Integration"
+        ],
         "parameters": [
           {
             "name": "slug",
@@ -984,7 +1053,9 @@
       "delete": {
         "summary": "Remove integration",
         "operationId": "deleteIntegration",
-        "tags": ["Integration"],
+        "tags": [
+          "Integration"
+        ],
         "parameters": [
           {
             "name": "slug",
@@ -1011,7 +1082,9 @@
       "get": {
         "summary": "List user memberships",
         "operationId": "listUserMemberships",
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -1029,7 +1102,9 @@
       "put": {
         "summary": "Update user profile",
         "operationId": "updateUser",
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1057,7 +1132,9 @@
       "delete": {
         "summary": "Delete user account",
         "operationId": "deleteUser",
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -1084,7 +1161,9 @@
       "get": {
         "summary": "List organization webhooks",
         "operationId": "listWebhooks",
-        "tags": ["Webhook"],
+        "tags": [
+          "Webhook"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -1100,7 +1179,9 @@
       "post": {
         "summary": "Create new webhook",
         "operationId": "createWebhook",
-        "tags": ["Webhook"],
+        "tags": [
+          "Webhook"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1128,7 +1209,9 @@
       "get": {
         "summary": "Get webhook by ID",
         "operationId": "getWebhook",
-        "tags": ["Webhook"],
+        "tags": [
+          "Webhook"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -1153,7 +1236,9 @@
       "put": {
         "summary": "Update existing webhook",
         "operationId": "updateWebhook",
-        "tags": ["Webhook"],
+        "tags": [
+          "Webhook"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -1188,7 +1273,9 @@
       "delete": {
         "summary": "Delete webhook",
         "operationId": "deleteWebhook",
-        "tags": ["Webhook"],
+        "tags": [
+          "Webhook"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -1215,7 +1302,9 @@
       "get": {
         "summary": "List available events",
         "operationId": "listEvents",
-        "tags": ["Webhook"],
+        "tags": [
+          "Webhook"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -1233,7 +1322,9 @@
       "get": {
         "summary": "List user sessions",
         "operationId": "listUserSessions",
-        "tags": ["Session"],
+        "tags": [
+          "Session"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -1251,7 +1342,9 @@
       "delete": {
         "summary": "Revoke user session",
         "operationId": "revokeSession",
-        "tags": ["Session"],
+        "tags": [
+          "Session"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1279,7 +1372,9 @@
       "get": {
         "summary": "List subscription plans",
         "operationId": "listPlans",
-        "tags": ["Plan"],
+        "tags": [
+          "Plan"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -1297,7 +1392,9 @@
       "get": {
         "summary": "Get billing customer info",
         "operationId": "getSessionCustomer",
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -1313,7 +1410,9 @@
       "post": {
         "summary": "Create payment checkout",
         "operationId": "createCheckoutSession",
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1341,7 +1440,9 @@
       "post": {
         "summary": "Create billing manager",
         "operationId": "createSessionManager",
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1369,7 +1470,9 @@
       "get": {
         "summary": "List content posts with filtering options",
         "operationId": "List Content",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "type",
@@ -1377,7 +1480,12 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["help", "blog", "docs", "update"]
+              "enum": [
+                "help",
+                "blog",
+                "docs",
+                "update"
+              ]
             }
           },
           {
@@ -1440,14 +1548,22 @@
       "get": {
         "summary": "Get a specific content post by type and slug using query parameters",
         "operationId": "Get Content",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "type",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "help",
+                "blog",
+                "docs",
+                "update"
+              ]
             }
           },
           {
@@ -1483,7 +1599,9 @@
       "get": {
         "summary": "Get available categories for a specific content type",
         "operationId": "Get Content Categories",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "type",
@@ -1491,7 +1609,12 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": ["help", "blog", "docs", "update"]
+              "enum": [
+                "help",
+                "blog",
+                "docs",
+                "update"
+              ]
             }
           }
         ],
@@ -1511,7 +1634,9 @@
       "get": {
         "summary": "Search posts across all content types or within a specific type",
         "operationId": "Search Content",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "query",
@@ -1535,7 +1660,12 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["help", "blog", "docs", "update"]
+              "enum": [
+                "help",
+                "blog",
+                "docs",
+                "update"
+              ]
             }
           },
           {
@@ -1595,14 +1725,22 @@
       "get": {
         "summary": "Get related content posts for a specific post using query parameters",
         "operationId": "Get Related Content",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "type",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "help",
+                "blog",
+                "docs",
+                "update"
+              ]
             }
           },
           {
@@ -1647,7 +1785,9 @@
       "get": {
         "summary": "List blog posts with filtering",
         "operationId": "List Blog Posts",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -1709,7 +1849,9 @@
       "get": {
         "summary": "List help center articles with category filtering",
         "operationId": "List Help Articles",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -1771,7 +1913,9 @@
       "get": {
         "summary": "List documentation with category filtering",
         "operationId": "List Documentation",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -1833,7 +1977,9 @@
       "get": {
         "summary": "List product updates and changelog",
         "operationId": "List Updates",
-        "tags": ["Content"],
+        "tags": [
+          "Content"
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -1895,7 +2041,9 @@
       "get": {
         "summary": "Retrieve a specific help center article by its slug",
         "operationId": "Get Help Article",
-        "tags": ["Help Center"],
+        "tags": [
+          "Help Center"
+        ],
         "parameters": [
           {
             "name": "slug",
@@ -1922,7 +2070,9 @@
       "get": {
         "summary": "List help center articles with optional filters",
         "operationId": "List Help Articles",
-        "tags": ["Help Center"],
+        "tags": [
+          "Help Center"
+        ],
         "parameters": [
           {
             "name": "category",
@@ -1978,7 +2128,9 @@
       "get": {
         "summary": "Search articles in the help center",
         "operationId": "Search Help Articles",
-        "tags": ["Help Center"],
+        "tags": [
+          "Help Center"
+        ],
         "parameters": [
           {
             "name": "q",
@@ -2025,7 +2177,9 @@
       "get": {
         "summary": "List all help center categories",
         "operationId": "Get Help Categories",
-        "tags": ["Help Center"],
+        "tags": [
+          "Help Center"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -2043,7 +2197,9 @@
       "get": {
         "summary": "List popular help center articles",
         "operationId": "Get Popular Articles",
-        "tags": ["Help Center"],
+        "tags": [
+          "Help Center"
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -2073,7 +2229,9 @@
       "get": {
         "summary": "Retrieve a specific blog post by its slug",
         "operationId": "Get Blog Post",
-        "tags": ["Blog"],
+        "tags": [
+          "Blog"
+        ],
         "parameters": [
           {
             "name": "slug",
@@ -2100,7 +2258,9 @@
       "get": {
         "summary": "List blog posts with optional filters and pagination",
         "operationId": "List Blog Posts",
-        "tags": ["Blog"],
+        "tags": [
+          "Blog"
+        ],
         "parameters": [
           {
             "name": "category",
@@ -2173,7 +2333,9 @@
       "get": {
         "summary": "Search blog posts with full-text search",
         "operationId": "Search Blog Posts",
-        "tags": ["Blog"],
+        "tags": [
+          "Blog"
+        ],
         "parameters": [
           {
             "name": "q",
@@ -2228,7 +2390,9 @@
       "get": {
         "summary": "List popular blog posts based on engagement",
         "operationId": "Get Popular Blog Posts",
-        "tags": ["Blog"],
+        "tags": [
+          "Blog"
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -2258,7 +2422,9 @@
       "get": {
         "summary": "Get posts related to a specific blog post",
         "operationId": "Get Related Blog Posts",
-        "tags": ["Blog"],
+        "tags": [
+          "Blog"
+        ],
         "parameters": [
           {
             "name": "slug",
@@ -2296,7 +2462,9 @@
       "get": {
         "summary": "Get overall blog statistics and metrics",
         "operationId": "Get Blog Statistics",
-        "tags": ["Blog"],
+        "tags": [
+          "Blog"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -2314,7 +2482,9 @@
       "get": {
         "summary": "List user notifications with real-time updates",
         "operationId": "List",
-        "tags": ["notification"],
+        "tags": [
+          "notification"
+        ],
         "parameters": [
           {
             "name": "page",
@@ -2390,7 +2560,9 @@
       "patch": {
         "summary": "Mark a notification as read",
         "operationId": "Mark as Read",
-        "tags": ["notification"],
+        "tags": [
+          "notification"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2417,7 +2589,9 @@
       "patch": {
         "summary": "Mark all notifications as read",
         "operationId": "Mark All as Read",
-        "tags": ["notification"],
+        "tags": [
+          "notification"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -2435,36 +2609,10 @@
       "get": {
         "summary": "Get count of unread notifications",
         "operationId": "Unread Count",
-        "tags": ["notification"],
+        "tags": [
+          "notification"
+        ],
         "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/notification/preferences": {
-      "patch": {
-        "summary": "Update notification preferences",
-        "operationId": "Update Preferences",
-        "tags": ["notification"],
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NotificationUpdate PreferencesBody"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Success",
@@ -2481,7 +2629,9 @@
       "delete": {
         "summary": "Delete a notification",
         "operationId": "Delete",
-        "tags": ["notification"],
+        "tags": [
+          "notification"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2508,7 +2658,9 @@
       "get": {
         "summary": "List submissions with filters",
         "operationId": "listSubmissions",
-        "tags": ["Submission"],
+        "tags": [
+          "Submission"
+        ],
         "parameters": [
           {
             "name": "page",
@@ -2540,7 +2692,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["asc", "desc"]
+              "enum": [
+                "asc",
+                "desc"
+              ]
             }
           },
           {
@@ -2574,7 +2729,9 @@
       "post": {
         "summary": "Create new submission",
         "operationId": "createSubmission",
-        "tags": ["Submission"],
+        "tags": [
+          "Submission"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -2602,7 +2759,9 @@
       "get": {
         "summary": "Get submission by ID",
         "operationId": "getSubmission",
-        "tags": ["Submission"],
+        "tags": [
+          "Submission"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2627,7 +2786,9 @@
       "put": {
         "summary": "Update submission data",
         "operationId": "updateSubmission",
-        "tags": ["Submission"],
+        "tags": [
+          "Submission"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2662,7 +2823,9 @@
       "delete": {
         "summary": "Delete submission by ID",
         "operationId": "deleteSubmission",
-        "tags": ["Submission"],
+        "tags": [
+          "Submission"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2689,7 +2852,9 @@
       "get": {
         "summary": "List all leads for an organization.",
         "operationId": "List",
-        "tags": ["lead"],
+        "tags": [
+          "lead"
+        ],
         "parameters": [
           {
             "name": "page",
@@ -2721,7 +2886,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["asc", "desc"]
+              "enum": [
+                "asc",
+                "desc"
+              ]
             }
           },
           {
@@ -2747,7 +2915,9 @@
       "post": {
         "summary": "Create a new lead.",
         "operationId": "Create",
-        "tags": ["lead"],
+        "tags": [
+          "lead"
+        ],
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -2775,7 +2945,9 @@
       "get": {
         "summary": "Retrieve a single lead by ID.",
         "operationId": "Retrieve",
-        "tags": ["lead"],
+        "tags": [
+          "lead"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2800,7 +2972,9 @@
       "patch": {
         "summary": "Update an existing lead by ID.",
         "operationId": "Update",
-        "tags": ["lead"],
+        "tags": [
+          "lead"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2835,7 +3009,9 @@
       "delete": {
         "summary": "Delete a lead by ID.",
         "operationId": "Delete",
-        "tags": ["lead"],
+        "tags": [
+          "lead"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -2871,7 +3047,10 @@
             "type": "string"
           }
         },
-        "required": ["provider", "callbackURL"],
+        "required": [
+          "provider",
+          "callbackURL"
+        ],
         "additionalProperties": false
       },
       "AccountsUnlinkAccountBody": {
@@ -2901,7 +3080,9 @@
             "nullable": true
           }
         },
-        "required": ["description"],
+        "required": [
+          "description"
+        ],
         "additionalProperties": false
       },
       "API KeysUpdateApiKeyBody": {
@@ -2926,7 +3107,9 @@
             "type": "string"
           }
         },
-        "required": ["provider"],
+        "required": [
+          "provider"
+        ],
         "additionalProperties": false
       },
       "AuthenticationSignInWithOtpBody": {
@@ -2939,7 +3122,10 @@
             "type": "string"
           }
         },
-        "required": ["email", "otpCode"],
+        "required": [
+          "email",
+          "otpCode"
+        ],
         "additionalProperties": false
       },
       "AuthenticationSendOtpCodeBody": {
@@ -2950,10 +3136,17 @@
           },
           "type": {
             "type": "string",
-            "enum": ["sign-in", "email-verification", "forget-password"]
+            "enum": [
+              "sign-in",
+              "email-verification",
+              "forget-password"
+            ]
           }
         },
-        "required": ["email", "type"],
+        "required": [
+          "email",
+          "type"
+        ],
         "additionalProperties": false
       },
       "AuthenticationSetActiveOrganizationBody": {
@@ -2963,7 +3156,9 @@
             "type": "string"
           }
         },
-        "required": ["organizationId"],
+        "required": [
+          "organizationId"
+        ],
         "additionalProperties": false
       },
       "InvitationCreateInvitationBody": {
@@ -2975,10 +3170,16 @@
           },
           "role": {
             "type": "string",
-            "enum": ["admin", "member"]
+            "enum": [
+              "admin",
+              "member"
+            ]
           }
         },
-        "required": ["email", "role"],
+        "required": [
+          "email",
+          "role"
+        ],
         "additionalProperties": false
       },
       "MembershipSearchMembershipsQuery": {
@@ -2995,7 +3196,10 @@
           },
           "sortOrder": {
             "type": "string",
-            "enum": ["asc", "desc"]
+            "enum": [
+              "asc",
+              "desc"
+            ]
           },
           "search": {
             "type": "string"
@@ -3092,7 +3296,10 @@
             "default": false
           }
         },
-        "required": ["name", "slug"],
+        "required": [
+          "name",
+          "slug"
+        ],
         "additionalProperties": false
       },
       "OrganizationVerifyOrganizationBody": {
@@ -3102,7 +3309,9 @@
             "type": "string"
           }
         },
-        "required": ["slug"],
+        "required": [
+          "slug"
+        ],
         "additionalProperties": false
       },
       "OrganizationUpdateOrganizationBody": {
@@ -3132,7 +3341,9 @@
             "additionalProperties": {}
           }
         },
-        "required": ["metadata"],
+        "required": [
+          "metadata"
+        ],
         "additionalProperties": false
       },
       "IntegrationUpdateIntegrationBody": {
@@ -3146,7 +3357,9 @@
             "type": "boolean"
           }
         },
-        "required": ["metadata"],
+        "required": [
+          "metadata"
+        ],
         "additionalProperties": false
       },
       "UserUpdateUserBody": {
@@ -3420,7 +3633,11 @@
             }
           }
         },
-        "required": ["url", "secret", "events"],
+        "required": [
+          "url",
+          "secret",
+          "events"
+        ],
         "additionalProperties": false
       },
       "WebhookUpdateWebhookBody": {
@@ -3448,7 +3665,9 @@
             "type": "string"
           }
         },
-        "required": ["token"],
+        "required": [
+          "token"
+        ],
         "additionalProperties": false
       },
       "BillingCreateCheckoutSessionBody": {
@@ -3459,10 +3678,18 @@
           },
           "cycle": {
             "type": "string",
-            "enum": ["month", "year", "week", "day"]
+            "enum": [
+              "month",
+              "year",
+              "week",
+              "day"
+            ]
           }
         },
-        "required": ["plan", "cycle"],
+        "required": [
+          "plan",
+          "cycle"
+        ],
         "additionalProperties": false
       },
       "BillingCreateSessionManagerBody": {
@@ -3472,7 +3699,9 @@
             "type": "string"
           }
         },
-        "required": ["returnUrl"],
+        "required": [
+          "returnUrl"
+        ],
         "additionalProperties": false
       },
       "ContentList ContentQuery": {
@@ -3480,7 +3709,12 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["help", "blog", "docs", "update"]
+            "enum": [
+              "help",
+              "blog",
+              "docs",
+              "update"
+            ]
           },
           "limit": {
             "type": "number"
@@ -3507,7 +3741,13 @@
         "type": "object",
         "properties": {
           "type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "help",
+              "blog",
+              "docs",
+              "update"
+            ]
           },
           "slug": {
             "type": "string"
@@ -3516,7 +3756,10 @@
             "type": "string"
           }
         },
-        "required": ["type", "slug"],
+        "required": [
+          "type",
+          "slug"
+        ],
         "additionalProperties": false
       },
       "ContentGet Content CategoriesQuery": {
@@ -3524,10 +3767,17 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["help", "blog", "docs", "update"]
+            "enum": [
+              "help",
+              "blog",
+              "docs",
+              "update"
+            ]
           }
         },
-        "required": ["type"],
+        "required": [
+          "type"
+        ],
         "additionalProperties": false
       },
       "ContentSearch ContentQuery": {
@@ -3541,7 +3791,12 @@
           },
           "type": {
             "type": "string",
-            "enum": ["help", "blog", "docs", "update"]
+            "enum": [
+              "help",
+              "blog",
+              "docs",
+              "update"
+            ]
           },
           "category": {
             "type": "string"
@@ -3570,7 +3825,13 @@
         "type": "object",
         "properties": {
           "type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "help",
+              "blog",
+              "docs",
+              "update"
+            ]
           },
           "slug": {
             "type": "string"
@@ -3583,7 +3844,10 @@
             "default": 3
           }
         },
-        "required": ["type", "slug"],
+        "required": [
+          "type",
+          "slug"
+        ],
         "additionalProperties": false
       },
       "ContentList Blog PostsQuery": {
@@ -3722,7 +3986,9 @@
             "default": 10
           }
         },
-        "required": ["q"],
+        "required": [
+          "q"
+        ],
         "additionalProperties": false
       },
       "Help CenterGet Popular ArticlesQuery": {
@@ -3787,7 +4053,9 @@
             "default": 10
           }
         },
-        "required": ["q"],
+        "required": [
+          "q"
+        ],
         "additionalProperties": false
       },
       "BlogGet Popular Blog PostsQuery": {
@@ -3857,26 +4125,6 @@
         },
         "additionalProperties": false
       },
-      "NotificationUpdate PreferencesBody": {
-        "type": "object",
-        "properties": {
-          "preferences": {
-            "type": "object",
-            "properties": {
-              "inApp": {
-                "type": "boolean"
-              },
-              "email": {
-                "type": "boolean"
-              }
-            },
-            "required": ["inApp", "email"],
-            "additionalProperties": false
-          }
-        },
-        "required": ["preferences"],
-        "additionalProperties": false
-      },
       "SubmissionListSubmissionsQuery": {
         "type": "object",
         "properties": {
@@ -3891,7 +4139,10 @@
           },
           "sortOrder": {
             "type": "string",
-            "enum": ["asc", "desc"]
+            "enum": [
+              "asc",
+              "desc"
+            ]
           },
           "search": {
             "type": "string"
@@ -3925,11 +4176,19 @@
                 "additionalProperties": {}
               }
             },
-            "required": ["source", "data"],
+            "required": [
+              "source",
+              "data"
+            ],
             "additionalProperties": false
           }
         },
-        "required": ["name", "email", "phone", "metadata"],
+        "required": [
+          "name",
+          "email",
+          "phone",
+          "metadata"
+        ],
         "additionalProperties": false
       },
       "SubmissionUpdateSubmissionBody": {
@@ -3958,7 +4217,10 @@
           },
           "sortOrder": {
             "type": "string",
-            "enum": ["asc", "desc"]
+            "enum": [
+              "asc",
+              "desc"
+            ]
           },
           "search": {
             "type": "string"
@@ -3985,7 +4247,9 @@
             "nullable": true
           }
         },
-        "required": ["email"],
+        "required": [
+          "email"
+        ],
         "additionalProperties": false
       },
       "LeadUpdateBody": {

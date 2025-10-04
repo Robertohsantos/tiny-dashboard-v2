@@ -19,7 +19,7 @@ import {
   createIgniterClient,
   useIgniterQueryClient,
 } from '@igniter-js/core/client'
-import { AppRouterSchema } from './igniter.schema'
+import { AppRouter } from './igniter.router'
 import type { AppRouterType } from './igniter.router'
 
 /**
@@ -62,10 +62,10 @@ export const api = createIgniterClient<AppRouterType>({
         }
       }
 
-      return (resolvedRouter ?? (AppRouterSchema as AppRouterType))
+      return resolvedRouter ?? AppRouter
     }
 
-    return AppRouterSchema as AppRouterType
+    return AppRouter
   },
 })
 

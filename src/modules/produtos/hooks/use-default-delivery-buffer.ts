@@ -28,6 +28,7 @@ export function useDefaultDeliveryBuffer() {
     days: DEFAULT_DAYS,
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [hasCustomDefaults, setHasCustomDefaults] = useState(false)
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -44,6 +45,7 @@ export function useDefaultDeliveryBuffer() {
           parsed.days <= MAX_DAYS
         ) {
           setDefaultsState(parsed)
+          setHasCustomDefaults(true)
         }
       }
     } catch (error) {
@@ -71,6 +73,7 @@ export function useDefaultDeliveryBuffer() {
     }
 
     setDefaultsState(newDefaults)
+    setHasCustomDefaults(true)
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newDefaults))
@@ -86,8 +89,17 @@ export function useDefaultDeliveryBuffer() {
    * Reset to default values
    */
   const resetToDefault = useCallback(() => {
-    setDefaults(DEFAULT_ENABLED, DEFAULT_DAYS)
-  }, [setDefaults])
+    setDefaultsState({ enabled: DEFAULT_ENABLED, days: DEFAULT_DAYS })
+    setHasCustomDefaults(false)
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch (error) {
+      console.error(
+        'Error clearing default delivery buffer from localStorage:',
+        error,
+      )
+    }
+  }, [])
 
   return {
     defaultDeliveryEnabled: defaults.enabled,
@@ -97,5 +109,6 @@ export function useDefaultDeliveryBuffer() {
     isLoading,
     MIN_DAYS,
     MAX_DAYS,
+    hasCustomDefaults,
   }
 }

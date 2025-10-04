@@ -6,7 +6,7 @@
 'use client'
 
 import * as React from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Form, FormField, FormMessage } from '@/components/ui/form'
@@ -25,8 +25,12 @@ import { useDefaultCoverageDays } from '@/modules/produtos/hooks/use-default-cov
 import { useDefaultDeliveryBuffer } from '@/modules/produtos/hooks/use-default-delivery-buffer'
 import { DefaultCoverageDaysModal } from './default-coverage-days-modal'
 import type { Produto } from '@/modules/produtos/types/produtos.types'
-import { normalizeMarca } from '@/modules/produtos/utils/produtos-transforms.utils'
+import {
+  normalizeMarca,
+  isFilterActive,
+} from '@/modules/produtos/utils/produtos-transforms.utils'
 import { calculateAvailableOptions } from '@/modules/produtos/utils/produtos-filters.utils'
+import { FilterType } from '@/modules/produtos/constants/produtos-filters.constants'
 
 /**
  * Form validation schema
@@ -74,11 +78,23 @@ export function PurchaseRequirementForm({
   products,
 }: PurchaseRequirementFormProps) {
   const allDepositos = React.useMemo(() => {
-    return Array.from(new Set(products.map((produto) => produto.deposito)))
+    const values = Array.from(
+      new Set(products.map((produto) => produto.deposito)),
+    ).filter((value): value is string => Boolean(value))
+
+    return values.sort((a, b) =>
+      a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+    )
   }, [products])
 
   const allFornecedores = React.useMemo(() => {
-    return Array.from(new Set(products.map((produto) => produto.fornecedor)))
+    const values = Array.from(
+      new Set(products.map((produto) => produto.fornecedor)),
+    ).filter((value): value is string => Boolean(value))
+
+    return values.sort((a, b) =>
+      a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+    )
   }, [products])
 
   const allMarcaOptions = React.useMemo(() => {
@@ -89,18 +105,34 @@ export function PurchaseRequirementForm({
         map.set(slug, produto.marca)
       }
     }
-    return Array.from(map.entries()).map(([value, label]) => ({
-      value,
-      label,
-    }))
+
+    return Array.from(map.entries())
+      .map(([value, label]) => ({
+        value,
+        label,
+      }))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+      )
   }, [products])
 
   const allCategorias = React.useMemo(() => {
-    return Array.from(new Set(products.map((produto) => produto.categoria)))
+    const values = Array.from(
+      new Set(products.map((produto) => produto.categoria)),
+    ).filter((value): value is string => Boolean(value))
+
+    return values.sort((a, b) =>
+      a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+    )
   }, [products])
 
   // Get default coverage days from hook
-  const { defaultDays, setDefaultDays } = useDefaultCoverageDays()
+  const {
+    defaultDays,
+    setDefaultDays,
+    hasCustomDefault: hasCustomCoverageDefault,
+    DEFAULT_VALUE: COVERAGE_DEFAULT,
+  } = useDefaultCoverageDays()
   
   // Get default delivery buffer from hook
   const {
@@ -108,6 +140,7 @@ export function PurchaseRequirementForm({
     defaultDeliveryDays,
     setDeliveryDefaults,
     isLoading: isDefaultDeliveryLoading,
+    hasCustomDefaults: hasCustomDeliveryDefaults,
   } = useDefaultDeliveryBuffer()
 
   // State for config modal
@@ -149,45 +182,97 @@ export function PurchaseRequirementForm({
     return allCategorias
   }, [allCategorias])
 
-  const sanitizeSelection = React.useCallback(
-    (values: string[] | undefined, available: string[]): string[] => {
-      if (!available.length) {
+  const sanitizeInitialSelection = React.useCallback(
+    (
+      values: string[] | undefined,
+      available: string[],
+      normalizer?: (value: string) => string,
+    ): string[] => {
+      if (available.length === 0) {
         return []
       }
 
-      const availableSet = new Set(available)
-      const initial = values?.filter((value) => availableSet.has(value)) ?? []
-      return initial.length > 0 ? initial : available
+      if (!values || values.length === 0) {
+        return [...available]
+      }
+
+      const allowed = new Set(available)
+      const sanitized = values
+        .map((value) => (normalizer ? normalizer(value) : value))
+        .filter((value) => allowed.has(value))
+
+      return sanitized.length > 0 ? sanitized : [...available]
     },
     [],
   )
 
-  const defaultDepositoSelection = React.useMemo(() => {
-    return sanitizeSelection(initialFilters?.deposito, allDepositoValues)
-  }, [initialFilters?.deposito, allDepositoValues, sanitizeSelection])
+  const defaultDepositoSelection = React.useMemo(
+    () =>
+      sanitizeInitialSelection(
+        initialFilters?.deposito,
+        allDepositoValues,
+      ),
+    [
+      sanitizeInitialSelection,
+      initialFilters?.deposito,
+      allDepositoValues,
+    ],
+  )
 
-  const defaultFornecedorSelection = React.useMemo(() => {
-    return sanitizeSelection(initialFilters?.fornecedor, allFornecedorValues)
-  }, [initialFilters?.fornecedor, allFornecedorValues, sanitizeSelection])
+  const defaultFornecedorSelection = React.useMemo(
+    () =>
+      sanitizeInitialSelection(
+        initialFilters?.fornecedor,
+        allFornecedorValues,
+      ),
+    [
+      sanitizeInitialSelection,
+      initialFilters?.fornecedor,
+      allFornecedorValues,
+    ],
+  )
 
-  const defaultMarcaSelection = React.useMemo(() => {
-    return sanitizeSelection(initialFilters?.marca, allMarcaValues)
-  }, [initialFilters?.marca, allMarcaValues, sanitizeSelection])
+  const defaultMarcaSelection = React.useMemo(
+    () =>
+      sanitizeInitialSelection(
+        initialFilters?.marca,
+        allMarcaValues,
+        normalizeMarca,
+      ),
+    [
+      sanitizeInitialSelection,
+      initialFilters?.marca,
+      allMarcaValues,
+    ],
+  )
 
-  const defaultCategoriaSelection = React.useMemo(() => {
-    return allCategoriaValues
-  }, [allCategoriaValues])
+  const defaultCategoriaSelection = React.useMemo(
+    () => [...allCategoriaValues],
+    [allCategoriaValues],
+  )
+
+  const effectiveCoverageDays = hasCustomCoverageDefault
+    ? defaultDays
+    : COVERAGE_DEFAULT
+
+  const effectiveDeliveryEnabled = hasCustomDeliveryDefaults
+    ? defaultDeliveryEnabled
+    : true
+
+  const effectiveDeliveryDays = hasCustomDeliveryDefaults
+    ? defaultDeliveryDays
+    : 7
 
   // Form setup with default values
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      coverageDays: defaultDays,
+      coverageDays: effectiveCoverageDays,
       leadTimeDays: 7,
       includeStockReserve: true,
       stockReserveDays: 7,
-      includeDeliveryBuffer: defaultDeliveryEnabled,
-      deliveryBufferDays: defaultDeliveryDays,
+      includeDeliveryBuffer: effectiveDeliveryEnabled,
+      deliveryBufferDays: effectiveDeliveryDays,
       filters: {
         marcas: defaultMarcaSelection,
         fornecedores: defaultFornecedorSelection,
@@ -198,112 +283,225 @@ export function PurchaseRequirementForm({
   })
 
   // Watch form values for conditional rendering
-  const selectedDepositos = form.watch('filters.depositos') || []
-  const selectedMarcas = form.watch('filters.marcas') || []
-  const selectedFornecedores = form.watch('filters.fornecedores') || []
-  const selectedCategorias = form.watch('filters.categorias') || []
-  const includeStockReserve = form.watch('includeStockReserve')
-  const includeDeliveryBuffer = form.watch('includeDeliveryBuffer')
-  const coverageDays = form.watch('coverageDays')
-  const deliveryBufferDays = form.watch('deliveryBufferDays') || 0
+  const selectedDepositos = useWatch({ control: form.control, name: 'filters.depositos' }) || []
+  const selectedMarcas = useWatch({ control: form.control, name: 'filters.marcas' }) || []
+  const selectedFornecedores = useWatch({ control: form.control, name: 'filters.fornecedores' }) || []
+  const selectedCategorias = useWatch({ control: form.control, name: 'filters.categorias' }) || []
+  const includeStockReserve = useWatch({ control: form.control, name: 'includeStockReserve' })
+  const includeDeliveryBuffer = useWatch({ control: form.control, name: 'includeDeliveryBuffer' })
+  const coverageDays = useWatch({ control: form.control, name: 'coverageDays' })
+  const deliveryBufferDays = useWatch({ control: form.control, name: 'deliveryBufferDays' }) || 0
 
-  const productsFilteredByCategoria = React.useMemo(() => {
-    if (selectedCategorias.length === 0) {
-      return products
+  const depositoTotal = allDepositoValues.length
+  const marcaTotal = allMarcaValues.length
+  const fornecedorTotal = allFornecedorValues.length
+  const categoriaTotal = allCategoriaValues.length
+
+  const depositoActive = React.useMemo(
+    () =>
+      isFilterActive(
+        selectedDepositos,
+        FilterType.DEPOSITO,
+        depositoTotal,
+      ),
+    [selectedDepositos, depositoTotal],
+  )
+
+  const marcaActive = React.useMemo(
+    () =>
+      isFilterActive(selectedMarcas, FilterType.MARCA, marcaTotal),
+    [selectedMarcas, marcaTotal],
+  )
+
+  const fornecedorActive = React.useMemo(
+    () =>
+      isFilterActive(
+        selectedFornecedores,
+        FilterType.FORNECEDOR,
+        fornecedorTotal,
+      ),
+    [selectedFornecedores, fornecedorTotal],
+  )
+
+  const categoriaActive = React.useMemo(() => {
+    if (categoriaTotal === 0) {
+      return false
     }
-    const categoriaSet = new Set(selectedCategorias)
-    return products.filter((produto) => categoriaSet.has(produto.categoria))
-  }, [products, selectedCategorias])
+    if (selectedCategorias.length === 0) {
+      return true
+    }
+    return selectedCategorias.length !== categoriaTotal
+  }, [selectedCategorias, categoriaTotal])
 
   const availableOptionSets = React.useMemo(() => {
-    const options = calculateAvailableOptions(productsFilteredByCategoria, {
+    return calculateAvailableOptions(products, {
       deposito: selectedDepositos,
       marca: selectedMarcas,
       fornecedor: selectedFornecedores,
+      categoria: categoriaActive ? selectedCategorias : undefined,
     })
-
-    const categoriaSet = new Set<string>()
-    for (const produto of products) {
-      const depositoMatch =
-        selectedDepositos.length === 0 ||
-        selectedDepositos.includes(produto.deposito)
-      const marcaMatch =
-        selectedMarcas.length === 0 ||
-        selectedMarcas.includes(normalizeMarca(produto.marca))
-      const fornecedorMatch =
-        selectedFornecedores.length === 0 ||
-        selectedFornecedores.includes(produto.fornecedor)
-
-      if (depositoMatch && marcaMatch && fornecedorMatch) {
-        categoriaSet.add(produto.categoria)
-      }
-    }
-
-    return {
-      depositos: options.depositos,
-      marcas: options.marcas,
-      fornecedores: options.fornecedores,
-      categorias: categoriaSet,
-    }
   }, [
     products,
-    productsFilteredByCategoria,
     selectedDepositos,
     selectedMarcas,
     selectedFornecedores,
+    selectedCategorias,
+    categoriaActive,
   ])
 
+  type FilterKey = 'deposito' | 'marca' | 'fornecedor' | 'categoria'
+
+  const activationOrderRef = React.useRef<Record<FilterKey, number>>({
+    deposito: 0,
+    marca: 0,
+    fornecedor: 0,
+    categoria: 0,
+  })
+  const activationCounterRef = React.useRef(0)
+  const [primaryFilter, setPrimaryFilter] = React.useState<FilterKey | null>(null)
+
+  React.useEffect(() => {
+    const currentOrder = activationOrderRef.current
+    const activeStates: Array<{ type: FilterKey; active: boolean }> = [
+      { type: 'deposito', active: depositoActive },
+      { type: 'marca', active: marcaActive },
+      { type: 'fornecedor', active: fornecedorActive },
+      { type: 'categoria', active: categoriaActive },
+    ]
+
+    for (const { type, active } of activeStates) {
+      const current = currentOrder[type] ?? 0
+      if (active) {
+        if (current === 0) {
+          activationCounterRef.current += 1
+          currentOrder[type] = activationCounterRef.current
+        }
+      } else if (current !== 0) {
+        currentOrder[type] = 0
+      }
+    }
+
+    const sorted = Object.entries(currentOrder)
+      .filter(([, order]) => typeof order === 'number' && Number(order) > 0)
+      .sort((a, b) => Number(a[1]) - Number(b[1]))
+      .map(([key]) => key as FilterKey)
+
+    const nextPrimary = sorted[0] ?? null
+
+    if (nextPrimary !== primaryFilter) {
+      setPrimaryFilter(nextPrimary)
+    } else if (!nextPrimary && primaryFilter) {
+      setPrimaryFilter(null)
+    }
+
+  }, [depositoActive, marcaActive, fornecedorActive, categoriaActive, primaryFilter])
+
+  const depositoIsPrimary = primaryFilter === 'deposito'
+  const marcaIsPrimary = primaryFilter === 'marca'
+  const fornecedorIsPrimary = primaryFilter === 'fornecedor'
+  const categoriaIsPrimary = primaryFilter === 'categoria'
+
+  const ignoreSelectChange = React.useCallback((_values: string[]) => {}, [])
+
   const depositoOptions = React.useMemo(() => {
-    const source =
-      availableOptionSets.depositos.size > 0
-        ? Array.from(availableOptionSets.depositos)
-        : allDepositoValues
-    return source.map((value) => ({
-      value,
-      label: depositoLabels.get(value) ?? value,
-    }))
-  }, [availableOptionSets.depositos, allDepositoValues, depositoLabels])
+    if (availableOptionSets.depositos.size === 0) {
+      return []
+    }
+
+    const orderedValues = Array.from(depositoLabels.keys())
+      .filter((value) => availableOptionSets.depositos.has(value))
+      .sort((a, b) =>
+        (depositoLabels.get(a) ?? a).localeCompare(depositoLabels.get(b) ?? b),
+      )
+
+    const dynamicValues = Array.from(availableOptionSets.depositos)
+      .filter((value) => !depositoLabels.has(value))
+      .sort((a, b) => a.localeCompare(b))
+
+    return [
+      ...orderedValues.map((value) => ({
+        value,
+        label: depositoLabels.get(value) ?? value,
+      })),
+      ...dynamicValues.map((value) => ({ value, label: value })),
+    ].sort((a, b) =>
+      a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+    )
+  }, [availableOptionSets.depositos, depositoLabels])
 
   const fornecedorOptions = React.useMemo(() => {
-    const source =
-      availableOptionSets.fornecedores.size > 0
-        ? Array.from(availableOptionSets.fornecedores)
-        : allFornecedorValues
-    return source.map((value) => ({
-      value,
-      label: fornecedorLabels.get(value) ?? value,
-    }))
-  }, [availableOptionSets.fornecedores, allFornecedorValues, fornecedorLabels])
+    if (availableOptionSets.fornecedores.size === 0) {
+      return []
+    }
+
+    const orderedValues = Array.from(fornecedorLabels.keys())
+      .filter((value) => availableOptionSets.fornecedores.has(value))
+      .sort((a, b) =>
+        (fornecedorLabels.get(a) ?? a).localeCompare(
+          fornecedorLabels.get(b) ?? b,
+        ),
+      )
+
+    const dynamicValues = Array.from(availableOptionSets.fornecedores)
+      .filter((value) => !fornecedorLabels.has(value))
+      .sort((a, b) => a.localeCompare(b))
+
+    return [
+      ...orderedValues.map((value) => ({
+        value,
+        label: fornecedorLabels.get(value) ?? value,
+      })),
+      ...dynamicValues.map((value) => ({ value, label: value })),
+    ].sort((a, b) =>
+      a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+    )
+  }, [availableOptionSets.fornecedores, fornecedorLabels])
 
   const marcaOptions = React.useMemo(() => {
-    const source =
-      availableOptionSets.marcas.size > 0
-        ? Array.from(availableOptionSets.marcas)
-        : allMarcaOptions.map((option) => option.label)
-
-    const map = new Map<string, string>()
-    source.forEach((label) => {
+    const availableSlugs = new Set<string>()
+    availableOptionSets.marcas.forEach((label) => {
       const slug = normalizeMarca(label)
-      if (!map.has(slug)) {
-        map.set(slug, label)
+      if (slug) {
+        availableSlugs.add(slug)
       }
     })
 
-    return Array.from(map.entries()).map(([value, label]) => ({
-      value,
-      label,
-    }))
+    if (availableSlugs.size === 0) {
+      return []
+    }
+
+    return allMarcaOptions
+      .filter((option) => availableSlugs.has(option.value))
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+      )
   }, [availableOptionSets.marcas, allMarcaOptions])
 
   const categoriaOptions = React.useMemo(() => {
-    const source =
-      availableOptionSets.categorias.size > 0
-        ? Array.from(availableOptionSets.categorias)
-        : allCategoriaValues
-    return source.map((categoria) => ({
-      value: categoria,
-      label: categoria,
-    }))
+    if (availableOptionSets.categorias.size === 0) {
+      return []
+    }
+
+    const orderedValues = allCategoriaValues.filter((categoria) =>
+      availableOptionSets.categorias.has(categoria),
+    )
+
+    const dynamicValues = Array.from(availableOptionSets.categorias)
+      .filter((categoria) => !orderedValues.includes(categoria))
+      .sort((a, b) => a.localeCompare(b))
+
+    return [
+      ...orderedValues.map((categoria) => ({
+        value: categoria,
+        label: categoria,
+      })),
+      ...dynamicValues.map((categoria) => ({
+        value: categoria,
+        label: categoria,
+      })),
+    ].sort((a, b) =>
+      a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }),
+    )
   }, [availableOptionSets.categorias, allCategoriaValues])
 
   React.useEffect(() => {
@@ -342,26 +540,26 @@ export function PurchaseRequirementForm({
 
   // Sync form value with default days when it changes
   React.useEffect(() => {
-    form.setValue('coverageDays', defaultDays)
-  }, [defaultDays, form])
+    form.setValue('coverageDays', effectiveCoverageDays)
+  }, [effectiveCoverageDays, form])
 
   React.useEffect(() => {
     if (isDefaultDeliveryLoading) return
 
     if (!form.formState.dirtyFields?.includeDeliveryBuffer) {
-      form.setValue('includeDeliveryBuffer', defaultDeliveryEnabled, {
+      form.setValue('includeDeliveryBuffer', effectiveDeliveryEnabled, {
         shouldDirty: false,
       })
     }
 
     if (!form.formState.dirtyFields?.deliveryBufferDays) {
-      form.setValue('deliveryBufferDays', defaultDeliveryDays, {
+      form.setValue('deliveryBufferDays', effectiveDeliveryDays, {
         shouldDirty: false,
       })
     }
   }, [
-    defaultDeliveryEnabled,
-    defaultDeliveryDays,
+    effectiveDeliveryEnabled,
+    effectiveDeliveryDays,
     isDefaultDeliveryLoading,
     form,
   ])
@@ -370,6 +568,13 @@ export function PurchaseRequirementForm({
    * Handle form submission
    */
   const handleSubmit = (values: FormValues) => {
+    const filterTotals = {
+      depositos: allDepositoValues.length,
+      marcas: allMarcaValues.length,
+      fornecedores: allFornecedorValues.length,
+      categorias: allCategoriaValues.length,
+    }
+
     onSubmit({
       ...values,
       showOnlyNeeded: true,
@@ -379,6 +584,8 @@ export function PurchaseRequirementForm({
       leadTimeDays: values.leadTimeDays || 7,
       method: 'RAPID' as const,
       leadTimeStrategy: 'P50' as const,
+      filterTotals,
+      primaryFilter: primaryFilter ?? undefined,
     })
   }
 
@@ -400,12 +607,16 @@ export function PurchaseRequirementForm({
                   <MultiSelect
                     options={depositoOptions}
                     value={field.value || []}
-                    onValueChange={field.onChange}
+                    onValueChange={ignoreSelectChange}
+                    commitMode="manual"
+                    onApply={(values) => field.onChange(values)}
                     label="Depósitos"
                     showLabel={false}
                     showAvailableCount
-                    placeholder={`Depósitos (${depositoOptions.length})`}
+                    placeholder="Depósitos"
                     disabled={isLoading}
+                    highlighted={depositoIsPrimary}
+                    optionsMaxHeight={214}
                   />
                   <p className="text-sm text-muted-foreground">
                     Selecione os depósitos para calcular a necessidade de compra
@@ -546,17 +757,21 @@ export function PurchaseRequirementForm({
                 name="filters.marcas"
                 render={({ field }) => (
                   <>
-                    <MultiSelect
-                      options={marcaOptions}
-                      value={field.value || []}
-                      onValueChange={field.onChange}
-                      label="Marcas"
-                      showLabel={false}
-                      showAvailableCount
-                      placeholder={`Marcas (${marcaOptions.length})`}
-                      disabled={isLoading}
-                      size="sm"
-                    />
+                  <MultiSelect
+                    options={marcaOptions}
+                    value={field.value || []}
+                    onValueChange={ignoreSelectChange}
+                    commitMode="manual"
+                    onApply={(values) => field.onChange(values)}
+                    label="Marcas"
+                    showLabel={false}
+                    showAvailableCount
+                    placeholder="Marcas"
+                    disabled={isLoading}
+                    size="sm"
+                    highlighted={marcaIsPrimary}
+                    optionsMaxHeight={214}
+                  />
                     <FormMessage />
                   </>
                 )}
@@ -567,17 +782,21 @@ export function PurchaseRequirementForm({
                 name="filters.fornecedores"
                 render={({ field }) => (
                   <>
-                    <MultiSelect
-                      options={fornecedorOptions}
-                      value={field.value || []}
-                      onValueChange={field.onChange}
-                      label="Fornecedores"
-                      showLabel={false}
-                      showAvailableCount
-                      placeholder={`Fornecedores (${fornecedorOptions.length})`}
-                      disabled={isLoading}
-                      size="sm"
-                    />
+                  <MultiSelect
+                    options={fornecedorOptions}
+                    value={field.value || []}
+                    onValueChange={ignoreSelectChange}
+                    commitMode="manual"
+                    onApply={(values) => field.onChange(values)}
+                    label="Fornecedores"
+                    showLabel={false}
+                    showAvailableCount
+                    placeholder="Fornecedores"
+                    disabled={isLoading}
+                    size="sm"
+                    highlighted={fornecedorIsPrimary}
+                    optionsMaxHeight={214}
+                  />
                     <FormMessage />
                   </>
                 )}
@@ -588,17 +807,21 @@ export function PurchaseRequirementForm({
                 name="filters.categorias"
                 render={({ field }) => (
                   <>
-                    <MultiSelect
-                      options={categoriaOptions}
-                      value={field.value || []}
-                      onValueChange={field.onChange}
-                      label="Categorias"
-                      showLabel={false}
-                      showAvailableCount
-                      placeholder={`Categorias (${categoriaOptions.length})`}
-                      disabled={isLoading}
-                      size="sm"
-                    />
+                  <MultiSelect
+                    options={categoriaOptions}
+                    value={field.value || []}
+                    onValueChange={ignoreSelectChange}
+                    commitMode="manual"
+                    onApply={(values) => field.onChange(values)}
+                    label="Categorias"
+                    showLabel={false}
+                    showAvailableCount
+                    placeholder="Categorias"
+                    disabled={isLoading}
+                    size="sm"
+                    highlighted={categoriaIsPrimary}
+                    optionsMaxHeight={214}
+                  />
                     <FormMessage />
                   </>
                 )}

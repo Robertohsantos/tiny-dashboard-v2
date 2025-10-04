@@ -1,13 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { MultiSelect } from '@/components/ui/multi-select'
 import {
   type PeriodType,
   calculateDateRange,
@@ -23,13 +17,24 @@ export function PeriodFilterSimple({
   value,
   onPeriodChange,
 }: PeriodFilterSimpleProps) {
-  const handleSelectChange = (newValue: string) => {
-    const periodType = newValue as PeriodType
-    const { startDate, endDate } = calculateDateRange(periodType)
-    onPeriodChange(periodType, startDate, endDate)
-  }
 
-  const periodOptions = getPeriodOptions()
+  const periodOptions = React.useMemo(() => getPeriodOptions(), [])
+  const multiSelectOptions = React.useMemo(
+    () =>
+      periodOptions.map((option) => ({
+        value: option.value,
+        label: option.label,
+      })),
+    [periodOptions],
+  )
+
+  const selectedValues = React.useMemo(() => [value], [value])
+
+  const handleMultiSelectChange = (values: string[]) => {
+    const nextValue = (values[0] as PeriodType) ?? value
+    const { startDate, endDate } = calculateDateRange(nextValue)
+    onPeriodChange(nextValue, startDate, endDate)
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -37,18 +42,17 @@ export function PeriodFilterSimple({
         Período:
       </span>
 
-      <Select value={value} onValueChange={handleSelectChange}>
-        <SelectTrigger className="w-[180px] bg-white border-gray-200">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {periodOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <MultiSelect
+        value={selectedValues}
+        onValueChange={handleMultiSelectChange}
+        options={multiSelectOptions}
+        label="Período"
+        showLabel={false}
+        placeholder={periodOptions.find((opt) => opt.value === value)?.label ?? 'Período'}
+        searchable={false}
+        selectionMode="single"
+        showSelectAll={false}
+      />
     </div>
   )
 }

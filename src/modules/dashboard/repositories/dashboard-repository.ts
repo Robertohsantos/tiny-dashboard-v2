@@ -239,14 +239,19 @@ export class DashboardRepository {
       },
     })
 
-    return data.map((item, index) => ({
-      date: item.date.toISOString().split('T')[0],
-      desktop: item.desktop,
-      mobile: item.mobile + item.tablet,
-      comparison: comparisonData[index]
-        ? comparisonData[index].desktop + comparisonData[index].mobile
-        : undefined,
-    }))
+    return data.map((item, index) => {
+      const previousEntry = comparisonData[index]
+      const currentTotal = item.desktop + item.mobile + item.tablet
+      const previousTotal = previousEntry
+        ? previousEntry.desktop + previousEntry.mobile
+        : null
+
+      return {
+        date: item.date.toISOString().split('T')[0],
+        current: currentTotal,
+        previous: previousTotal,
+      }
+    })
   }
 
   /**
@@ -294,7 +299,7 @@ export class DashboardRepository {
   }
 
   private getPreviousPeriod(period?: PeriodFilter): PeriodFilter {
-    if (!period) {
+    if (!period || !period.startDate || !period.endDate) {
       const now = new Date()
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
       const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)

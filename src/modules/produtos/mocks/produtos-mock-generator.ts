@@ -690,8 +690,7 @@ export function generateMockProdutos(
   }
 
   const workingSet = produtosBase.slice(0, datasetSize)
-  let filteredProdutos =
-    normalizedCount > 0 ? workingSet.slice(0, normalizedCount) : []
+  let filteredProdutos = workingSet.slice()
 
   if (filter?.categoria) {
     filteredProdutos = filteredProdutos.filter(
@@ -792,6 +791,10 @@ export function generateMockProdutos(
         produto.sku.toLowerCase().includes(searchLower) ||
         produto.categoria.toLowerCase().includes(searchLower),
     )
+  }
+
+  if (normalizedCount === 0) {
+    return []
   }
 
   return filteredProdutos.slice(0, normalizedCount).map((produto) => ({

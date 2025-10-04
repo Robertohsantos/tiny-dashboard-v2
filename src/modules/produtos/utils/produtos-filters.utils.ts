@@ -17,12 +17,14 @@ export interface AvailableFilterOptions {
   depositos: Set<string>
   marcas: Set<string>
   fornecedores: Set<string>
+  categorias: Set<string>
 }
 
 type FilterSelection = {
   deposito: string[]
   marca: string[]
   fornecedor: string[]
+  categoria?: string[]
 }
 
 /**
@@ -38,12 +40,15 @@ export function calculateAvailableOptions(
   allProducts: Produto[],
   activeFilters: FilterSelection,
 ): AvailableFilterOptions {
+  const emptyResult: AvailableFilterOptions = {
+    depositos: new Set<string>(),
+    marcas: new Set<string>(),
+    fornecedores: new Set<string>(),
+    categorias: new Set<string>(),
+  }
+
   if (!allProducts || allProducts.length === 0) {
-    return {
-      depositos: new Set<string>(),
-      marcas: new Set<string>(),
-      fornecedores: new Set<string>(),
-    }
+    return emptyResult
   }
 
   const totalMarcas = new Set(
@@ -63,20 +68,26 @@ export function calculateAvailableOptions(
     activeFilters.fornecedor,
     FilterType.FORNECEDOR,
   )
+  const categoriaSelections = Array.isArray(activeFilters.categoria)
+    ? activeFilters.categoria.filter((value) => value && value !== 'all')
+    : undefined
+  const categoriaActive = Array.isArray(activeFilters.categoria)
 
   const selectedDepositos = new Set(
-    activeFilters.deposito.filter((value) => value !== 'all'),
+    activeFilters.deposito.filter((value) => value && value !== 'all'),
   )
   const selectedMarcas = new Set(
-    activeFilters.marca.filter((value) => value !== 'all'),
+    activeFilters.marca.filter((value) => value && value !== 'all'),
   )
   const selectedFornecedores = new Set(
-    activeFilters.fornecedor.filter((value) => value !== 'all'),
+    activeFilters.fornecedor.filter((value) => value && value !== 'all'),
   )
+  const selectedCategorias = new Set(categoriaSelections ?? [])
 
   const depositos = new Set<string>()
   const marcas = new Set<string>()
   const fornecedores = new Set<string>()
+  const categorias = new Set<string>()
 
   for (const product of allProducts) {
     const marcaSlug = normalizeMarca(product.marca)
@@ -86,17 +97,31 @@ export function calculateAvailableOptions(
     const matchesMarca = !marcaActive || selectedMarcas.has(marcaSlug)
     const matchesFornecedor =
       !fornecedorActive || selectedFornecedores.has(product.fornecedor)
+    const matchesCategoria =
+      !categoriaActive || selectedCategorias.has(product.categoria)
 
-    if (matchesMarca && matchesFornecedor) {
-      depositos.add(product.deposito)
+    if (matchesMarca && matchesFornecedor && matchesCategoria) {
+      if (product.deposito) {
+        depositos.add(product.deposito)
+      }
     }
 
-    if (matchesDeposito && matchesFornecedor) {
-      marcas.add(product.marca)
+    if (matchesDeposito && matchesFornecedor && matchesCategoria) {
+      if (product.marca) {
+        marcas.add(product.marca)
+      }
     }
 
-    if (matchesDeposito && matchesMarca) {
-      fornecedores.add(product.fornecedor)
+    if (matchesDeposito && matchesMarca && matchesCategoria) {
+      if (product.fornecedor) {
+        fornecedores.add(product.fornecedor)
+      }
+    }
+
+    if (matchesDeposito && matchesMarca && matchesFornecedor) {
+      if (product.categoria) {
+        categorias.add(product.categoria)
+      }
     }
   }
 
@@ -104,6 +129,7 @@ export function calculateAvailableOptions(
     depositos,
     marcas,
     fornecedores,
+    categorias,
   }
 }
 
@@ -144,6 +170,10 @@ export function calculateOptionCounts(
     activeFilters.fornecedor,
     FilterType.FORNECEDOR,
   )
+  const categoriaSelections = Array.isArray(activeFilters.categoria)
+    ? activeFilters.categoria.filter((value) => value && value !== 'all')
+    : undefined
+  const categoriaActive = Array.isArray(activeFilters.categoria)
 
   const selectedDepositos = new Set(
     activeFilters.deposito.filter((value) => value !== 'all'),
@@ -154,9 +184,16 @@ export function calculateOptionCounts(
   const selectedFornecedores = new Set(
     activeFilters.fornecedor.filter((value) => value !== 'all'),
   )
+  const selectedCategorias = new Set(categoriaSelections ?? [])
 
   for (const product of allProducts) {
     const marcaSlug = normalizeMarca(product.marca)
+
+    if (categoriaActive && product.categoria) {
+      if (!selectedCategorias.has(product.categoria)) {
+        continue
+      }
+    }
 
     if (
       filterType !== 'deposito' &&
